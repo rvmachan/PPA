@@ -1,0 +1,6 @@
+"0","acsVars <- c(""B01001_001E"", # ACS total Pop estimate"
+"0","              ""B25002_001E"", # Estimate of total housing units"
+"0","              ""B25002_003E"", # Number of vacant housing units"
+"0","              ""B19013_001E"", # Median HH Income ($)"
+"0","              ""B02001_002E"", # People describing themselves as ""white alone"""
+"0","              ""B06009_006E"") # Total graduate or professional degree)"

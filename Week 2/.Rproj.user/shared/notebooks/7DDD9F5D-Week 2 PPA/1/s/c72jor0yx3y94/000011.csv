@@ -1,0 +1,7 @@
+"0","vacancySumTable <- allACS %>%"
+"0","  group_by(mtAiry) %>%"
+"0","  summarize(meanVacancyHU = mean(totalVacant2020, na.rm = TRUE))"
+"0",""
+"0","vacancySumTable %>%"
+"0","  kbl%>%"
+"0","  kable_styling(bootstrap_options = ""striped"", font_size = 9)"

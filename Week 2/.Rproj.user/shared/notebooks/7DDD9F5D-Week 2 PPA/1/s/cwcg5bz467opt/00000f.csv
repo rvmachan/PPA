@@ -1,0 +1,3 @@
+"0","allACS <- allACS %>%"
+"0","  mutate(changeMedHHIncome = medHHIncome2020 - (medHHIncome2016*1.08),"
+"0","         changeGradDegreePct = (totalGradDeg2020/totalPop2020) - (totalGradDeg2016/totalPop2016)) "

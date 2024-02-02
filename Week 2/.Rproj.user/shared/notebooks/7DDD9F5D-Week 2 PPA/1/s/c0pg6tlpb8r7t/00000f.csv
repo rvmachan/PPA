@@ -1,0 +1,2 @@
+"0","acsVariables2020 <- load_variables(2020, ""acs5"", cache = TRUE)"
+"0","acsVariables2016 <- load_variables(2016, ""acs5"", cache = TRUE)"

@@ -1,0 +1,7 @@
+"0","acsTractsPhl2020 <- get_acs(geography = ""tract"","
+"0","                            year = 2020,"
+"0","                            variables = acsVars,"
+"0","                            geometry = FALSE,"
+"0","                            state = ""PA"","
+"0","                            county = ""Philadelphia"","
+"0","                            output = ""wide"")"
