@@ -1,6 +1,6 @@
 ---
 title: "PPA Midterm"
-author: "Revathi Machan, Kamya Khandelwal"
+author: "Kamya Khandelwal, Revathi Machan"
 date: "2024-03-20"
 output: html_document:
   keep_md: yes
