@@ -105,5 +105,6 @@ summary(seattleData)
 
 
 ```
+```{r corr int}
 
 
