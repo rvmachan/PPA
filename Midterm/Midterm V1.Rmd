@@ -61,12 +61,23 @@ Identifies potential areas for further model improvement
 
 ```{r setting up the packages}
 if (!require(pacman)){install.packages("pacman"); library(pacman)}
-p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales)
+p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr)
 
 ```
 
 ```{r}
 census_api_key("b3eda1fa84dde3c5ad443fd407d48f2584ab2726", overwrite = TRUE)
+```
+
+# Data Wrangling
+
+Census, OpenData Seattle and provided Dataset 
+
+## Provided Dataset and Internal Variables
+
+The code below is used to import the foundational dataset for our model. This dataset contains information on home sales prices and property characteristics in Seattle, Kings County for the years 2014 and 2015. The model we are developing is designed to make predictions about home prices and utilizes specific property attributes from this dataset to enhance the accuracy of those predictions.
+
+```{r Reading Data, results= 'hide'}
 
 kingsCounty <- read.csv("kc_house_data.csv")
 st_crs(kingsCounty)
@@ -79,7 +90,7 @@ seattleSidewalks <- read.csv("Sidewalks-API_20240326.csv")
 
 
 ```{r}
-#filtering out data that's not seattle
+#filtering out data that's not Seattle
 
 seattleData <- kingsCounty %>%
   filter(zipcode %in% c("98101","98102","98103","98104","98105", "98106","98107", "98108","98109","98111","98112","98113",'98114","98115"."98116","98117","98118","98119","98120","98121","98122","98123","98124","98125","98126","98131","98132',"98133","98134","98135","98136","98138","98144","98145","98146","98148","98154","98155","98158","98160","98161","98164","98166","98168","98171","98174","98177","98178","98188","98198","98199"))
