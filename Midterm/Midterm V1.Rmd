@@ -111,7 +111,7 @@ seattleDatacorr <- seattleData %>%
 cor(seattleDatacorr)
 corr <- round(cor(seattleDatacorr), 1)
 ggcorrplot(corr,
-           type = "lower",
+           type = "upper",
            lab = TRUE, 
            lab_size = 5,  
            colors = c('#d7191c','#ffffbf','#2c7bb6'),
