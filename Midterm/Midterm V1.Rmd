@@ -1,0 +1,76 @@
+---
+title: "PPA Midterm"
+author: "RVM"
+date: "2024-03-20"
+output: html_document:
+  keep_md: yes
+  toc: yes
+  theme: flatly
+  toc_float: yes
+  code_folding: hide
+  number_sections: no
+  fontsize: 12pt
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE)
+```
+
+Property Value Prediction Model 
+have variables, may wanna gather more for the model
+predictive model of price incorporating structural and locational characteristics 
+
+- summary statistics w variable descriptions
+- correlation matrix
+- 4 home price correlation scatterplots
+- 1 map of dep variable (sale price)
+- 3 maps of 3 most interesting independent variables (factors we choose)
+- testing and training dataset???
+- discussion of performance
+- plot of predicted prices as function of observed prices
+- map of residuals 
+
+## Introduction 
+Clearly states the goal of the analysis	
+Provides a brief overview of the methods for data collection
+
+## Data Description
+Presents a comprehensive table of summary statistics	
+Variable descriptions are included and sorted by category
+
+## Exploratory Data Analysis 
+Correlation matrix is provided	
+Four home price correlation scatterplots are included	
+Map of the dependent variable (sale price) is presented	
+Three maps of independent variables are included
+
+## Modeling 
+5 points to hit here
+
+## Conclusion
+Summarizes findings and discusses limitations	
+Identifies potential areas for further model improvement
+
+
+```{r setting up the packages}
+if (!require(pacman)){install.packages("pacman"); library(pacman)}
+p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales)
+
+```
+
+```{r}
+census_api_key("b3eda1fa84dde3c5ad443fd407d48f2584ab2726", overwrite = TRUE)
+
+kings_county <- read_csv("kc_house_data.csv")
+st_crs(kings_county)
+st_transform(kings_county, crs = 4326)
+
+```
+

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><metadata>
+    <idinfo>
+        <citation>
+            <citeinfo>
+                <origin/>
+                <title>Bus Operating Patterns of NJ Transit</title>
+            </citeinfo>
+        </citation>
+        <descript>
+            <abstract>This layer was created and maintained by the GIS Department. The purpose of this layer is to display active bus route variations known as patterns within the current bus service. The layer’s Projected Coordinate System is NAD_1983_StatePlane_New_Jersey_FIPS_2900 and Geographic Coordinate System is GCS_North_American_1983. Data represents scheduled, not necessarily operated service patterns. Bus line numbers represent internal route numbers and include all light rail service. The external names are as follows: 7 = Newark Light Rail 342 = Hudson-Bergen Light Rail 343 = River LINE 258 = go25</abstract>
+            <purpose>Bus routes from the January 2024 service change. Each record indicates a different bus pattern along with its direction (inbound/outbound) and mileage.</purpose>
+        </descript>
+        <status>
+            <progress>In work</progress>
+            <update>As needed</update>
+        </status>
+        <keywords>
+            <theme>
+                <themekt>None</themekt>
+                <themekey>Transportation</themekey>
+            </theme>
+            <theme>
+                <themekt>ISO 19115 Topic Categories</themekt>
+                <themekey>transportation</themekey>
+            </theme>
+            <place>
+                <placekt>None</placekt>
+                <placekey>New Jersey</placekey>
+                <placekey>New York</placekey>
+                <placekey>Pennsylvania</placekey>
+            </place>
+        </keywords>
+        <accconst>Other Constraints</accconst>
+        <useconst>None</useconst>
+        <ptcontac>
+            <cntinfo>
+                <cntorgp>
+                    <cntorg>NJ Transit</cntorg>
+                    <cntper>Aaron Reisner</cntper>
+                </cntorgp>
+                <cntpos>Director of GIS</cntpos>
+                <cntaddr>
+                    <addrtype>mailing</addrtype>
+                    <address>One Penn Plaza East</address>
+                    <city>Newark</city>
+                    <state>NJ</state>
+                    <postal>07105</postal>
+                </cntaddr>
+                <cntvoice>973-491-7606</cntvoice>
+                <cntemail>areisner@njtransit.com</cntemail>
+            </cntinfo>
+        </ptcontac>
+        <datacred>NJ TRANSIT GIS Department</datacred>
+    </idinfo>
+    <metainfo>
+        <metd>20220901</metd>
+        <metc>
+            <cntinfo>
+                <cntorgp>
+                    <cntorg>NJ Transit</cntorg>
+                    <cntper>Aaron Reisner</cntper>
+                </cntorgp>
+                <cntpos>Director of GIS</cntpos>
+                <cntaddr>
+                    <addrtype>mailing</addrtype>
+                    <address>One Penn Plaza East</address>
+                    <city>Newark</city>
+                    <state>NJ</state>
+                    <postal>07105</postal>
+                </cntaddr>
+                <cntvoice>973-491-7606</cntvoice>
+                <cntemail>areisner@njtransit.com</cntemail>
+            </cntinfo>
+        </metc>
+        <metstdn>FGDC Content Standard for Digital Geospatial Metadata</metstdn>
+        <metstdv>FGDC-STD-001-1998</metstdv>
+        <mettc>local time</mettc>
+    </metainfo>
+</metadata>

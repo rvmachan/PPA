@@ -1,0 +1,244 @@
+---
+title: "Week 3 PPA"
+author: "RVM"
+date: "2024-02-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 
+
+```{r}
+if (!require(pacman)){install.packages("pacman"); library(pacman)}
+p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales)
+
+
+options(scipen=999)
+options(tigris_class = "sf")
+
+source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
+```
+
+```{r}
+census_api_key("b3eda1fa84dde3c5ad443fd407d48f2584ab2726", overwrite = TRUE)
+
+njTracts09 <-  
+  get_acs(geography = "tract",
+          variables = c("B25026_001E","B02001_002E",
+                        "B15001_050E","B15001_009E",
+                        "B19013_001E", "B25058_001E",
+                        "B06012_002E"), 
+          year=2009, state= 34, #New Jersey FIPS code is 34, Mercer County FIPS code is 021
+          county=021, geometry=TRUE) %>%
+  st_transform('ESRI:102728')
+```
+
+
+```{r}
+njTracts09 <- njTracts09 %>%
+  dplyr::select(-NAME, -moe) %>%
+  spread(key = variable, value = estimate) %>%
+  rename(totalPop = B25026_001, 
+         whites = B02001_002,
+         femaleBachelors = B15001_050, 
+         maleBachelors = B15001_009,
+         medHHInc = B19013_001, 
+         medRent = B25058_001,
+         totalPoverty = B06012_002)
+
+njTracts09 <-
+  njTracts09 %>%
+  mutate(pctWhite = ifelse(totalPop > 0, whites/totalPop, 0),
+         pctBachelors = ifelse(totalPop > 0, ((femaleBachelors + maleBachelors)/totalPop), 0),
+         pctPoverty = ifelse(totalPop > 0, totalPoverty /totalPop, 0),
+         year = "2009") %>%
+  dplyr::select(-whites, -femaleBachelors, -maleBachelors, totalPoverty)
+```
+
+```{r results = 'hide'}
+njTracts17 <-
+  get_acs(geography = "tract",
+          variables = c("B25026_001E","B02001_002E",
+                        "B15001_050E","B15001_009E",
+                        "B19013_001E","B25058_001E",
+                        "B06012_002E"),
+          year = 2017, state = 34, county = 021,
+          geometry = TRUE, output = "wide") %>%
+  st_transform('ESRI:102728') %>%
+  rename(totalPop = B25026_001E, 
+         whites = B02001_002E,
+         femaleBachelors = B15001_050E, 
+         maleBachelors = B15001_009E,
+         medHHInc = B19013_001E, 
+         medRent = B25058_001E,
+         totalPoverty = B06012_002E) %>%
+  dplyr::select(-NAME, -starts_with("B")) %>%
+  mutate(pctWhite = ifelse(totalPop > 0, whites/totalPop, 0),
+         pctBachelors = ifelse(totalPop > 0, ((femaleBachelors + maleBachelors)/totalPop), 0),
+         pctPoverty = ifelse(totalPop > 0, totalPoverty /totalPop, 0),
+         year = "2017") %>%
+  dplyr::select(-whites, -femaleBachelors, -maleBachelors, totalPoverty)
+```
+
+```{r}
+njAllTracts <- rbind(njTracts09, njTracts17)
+```
+
+```{r}
+njBus <- st_read("Bus_Stops_of_NJ_Transit_by_Line/Bus_Stops_of_NJ_Transit_by_Line.shp")
+
+
+njBusStops <- 
+     njBus %>% 
+      dplyr::filter(COUNTY == "Mercer") %>%
+      dplyr::select(DESCRIPTIO, LINE, COUNTY)%>%
+  st_transform(st_crs(njTracts09))  
+
+njBusLines <- read_sf("Bus_Operating_Patterns_of_NJ_Transit/Bus_Operating_Patterns_of_NJ_Transit.shp") %>%
+  dplyr::filter()
+  st_crs(njTracts09)
+
+ggplot()+
+  geom_sf(data = njTracts17, col = "turquoise3")+
+  geom_sf(data = njBusStops, size = 0.75, col = "darkslategray")+
+  labs(title = "Train Transit Network in Mercer County, New Jersey",
+       caption = "Figure 1")+
+  theme_void()
+```
+
+```{r}
+ggplot() + 
+  geom_sf(data=st_union(njTracts09)) + #we did this to get rid of the borders of the census tracts to simplify the map. This highlights the subway stops
+  geom_sf(data=njBusStops, 
+          aes(colour = LINE), 
+          show.legend = "point", size= 0.75) +
+  labs(title="NJ Bus Stops", 
+       subtitle="Mercer, NJ", 
+       caption="Figure 2.1") +
+  theme_void()
+```
+
+```{r}
+stopBuffer <- st_buffer(njBusStops, 2640)
+
+stopUnion <- st_union(st_buffer(njBusStops, 2640))
+
+njStopBuffers <- 
+  rbind(
+     stopBuffer %>%
+      mutate(Legend = "Buffer") %>%
+      dplyr::select(Legend),
+     stopUnion %>%
+      st_sf() %>%
+      mutate(Legend = "Unioned Buffer")) 
+
+```
+
+```{r}
+ggplot() +
+  geom_sf(data=njStopBuffers) +
+  geom_sf(data=njBusStops, show.legend = "point") +
+  facet_wrap(~Legend) + 
+  labs(caption = "Figure 2.2") +
+  theme_void()
+```
+
+
+```{r}
+njAllTracts.group <- 
+  rbind(
+    st_centroid(njAllTracts)[njStopBuffers,] %>%
+      st_drop_geometry() %>%
+      left_join(njAllTracts) %>%
+      st_sf() %>%
+      mutate(TOD = "TOD"),
+    st_centroid(njAllTracts)[njStopBuffers, op = st_disjoint] %>%
+      st_drop_geometry() %>%
+      left_join(njAllTracts) %>%
+      st_sf() %>%
+      mutate(TOD = "Non-TOD")) %>%
+  mutate(MedRent.inf = ifelse(year == "2009", medRent * 1.14, medRent)) 
+
+```
+
+```{r TOD visualization}
+ggplot()+
+  geom_sf(data = njAllTracts.group, aes(fill = TOD))+
+  labs(title = "Tracts within Train Station Buffer Zones",
+       caption = "Figure 3")+
+  theme_void()
+```
+
+```{r population group}
+ggplot() +
+  geom_sf(data = njAllTracts.group, aes(fill = totalPop)) +
+  scale_fill_distiller(palette = "Reds", direction = 1, breaks = pretty_breaks()) +
+  facet_grid(TOD~year) +
+  labs(title = "Total Population in 2009 and 2017 for TOD and Non-TOD",
+       caption = "Figure 4") +
+  theme_void()
+```
+
+```{r median household income}
+ggplot() +
+  geom_sf(data = njAllTracts.group, aes(fill = medHHInc)) +
+  scale_fill_distiller(palette = "Purples", direction = 1, breaks = pretty_breaks()) +
+  facet_grid(TOD~year) +
+  labs(title = "Median Household Income in 2009 and 2017 for TOD and Non-TOD",
+       caption = "Figure 5") +
+  theme_void()
+
+```
+
+```{r pct poverty}
+ggplot() +
+  geom_sf(data = njAllTracts.group, aes(fill = pctPoverty)) +
+  scale_fill_distiller(palette = "Blues", direction = 1, breaks = pretty_breaks()) +
+  facet_grid(TOD~year) +
+  labs(title = "Percentage of Poverty in 2009 and 2017 for TOD and Non-TOD",
+       caption = "Figure 6") +
+  theme_void()
+
+```
+
+```{r pct White}
+
+ggplot() +
+  geom_sf(data = njAllTracts.group, aes(fill = pctWhite)) +
+  scale_fill_distiller(palette = "Aquamarines", direction = 1, breaks = pretty_breaks()) +
+  facet_grid(TOD~year) +
+  labs(title = "Percentage of White Population in 2009 and 2017 for TOD and Non-TOD",
+       caption = "Figure 7") +
+  theme_void()
+
+```
+
+
+
+
+### TOD Indicator Tables
+
+```{r}
+njAllTracts.Summary <- 
+  st_drop_geometry(njAllTracts.group) %>%
+  group_by(year, TOD) %>%
+  summarize(Rent = mean(medRent, na.rm = T),
+            Population = mean(totalPop, na.rm = T),
+            Percent_White = mean(pctWhite, na.rm = T),
+            Percent_Bach = mean(pctBachelors, na.rm = T),
+            Percent_Poverty = mean(pctPoverty, na.rm = T))
+
+kable(njAllTracts.Summary) %>%
+  kable_styling() %>%
+  footnote(general_title = "Summary of TOD and Non TOD areas in Mercer County in 2009 and 2017",
+           general = "Table 2.2")
+```
+
+
+
+
+
+

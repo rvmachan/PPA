@@ -1,0 +1,297 @@
+---
+title: "Week 3"
+author: "Avani"
+date: "2024-02-02"
+output: 
+  html_document:
+    theme: united
+    toc: true
+    toc_float: 
+      collapsed: false
+      smooth_scroll: true
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In recent popular conversations, transit development has increasingly come under fire for supposedly causing gentrificiation. We seek to investigate this phenonminah and understand to what extent does transit locations impact the quality of life  indicators in Cook County, Illinois. 
+
+To begin, we start by loading our packages and setting our environment.
+```{r packages, warning = FALSE, message = FALSE}
+library(pacman)
+p_load(tidyverse, tidycensus, sf, kableExtra, tmap, scales)
+
+#Adjusting our Options
+options(scipen = 999)
+options(tigris_class = "sf")
+```
+
+Now that our packages are ready, lets begin wranging our data.
+
+## Working with Census Data
+
+### Extracting 2009 Census Data
+For this report, we will seek to compare census variables from 2009 and 2017. Using the census API, I first download 7 key variables of interest. 
+
+```{r 09census, results=FALSE, warning=FALSE, message=FALSE}
+
+tracts09 <-  get_acs(geography = "tract",
+          variables = c("B25026_001E","B02001_002E",
+                        "B15001_050E","B15001_009E",
+                        "B19013_001E", "B25058_001E",
+                        "B06012_002E"), 
+          year=2009, state=17,
+          county= 031, geometry=TRUE) %>% 
+  st_transform('ESRI:103272') #Transforming it to Illinois East
+```
+
+#### Turning Data from Long to Wide
+Taking a look at the data, we see that our variables of interest are arrange in a long format i.e. in rows. To make our analysis work easier, we want to convert this into wide format using the variable column as the key for the spread. 
+
+```{r 09widening, results='hide', warning=FALSE, message=FALSE}
+tracts09 <- tracts09 %>%
+  select( -NAME, -moe) %>%
+  spread(key = variable, value = estimate) %>%
+  rename(TotalPop = B25026_001, 
+         Whites = B02001_002,
+         FemaleBachelors = B15001_050, 
+         MaleBachelors = B15001_009,
+         MedHHInc = B19013_001, 
+         MedRent = B25058_001,
+         TotalPoverty = B06012_002)
+```
+
+For some reason this transformation keeps leaving me with an empty polygon in first row. This is a problem for my later data analysis so I am removing it.
+
+```{r 09housekeeping}
+tracts09 <- tracts09[-1, ]
+```
+
+#### Creating Percent of Variables 
+
+Now that our data is in a wide format, we want to create percentage variables of some key indicators that we will be taking a look at later on. These percentage variables act as the indicators for our analysis. 
+
+```{r 09variables, results='hide', warning=FALSE, message=FALSE}
+tracts09 <- tracts09 %>%
+  mutate(pctWhite = ifelse(TotalPop > 0, Whites / TotalPop, 0),
+         pctBachelors = ifelse(TotalPop > 0, ((FemaleBachelors + MaleBachelors) / TotalPop), 0),
+         pctPoverty = ifelse(TotalPop > 0, TotalPoverty / TotalPop, 0),
+         year = "2009") 
+```
+
+### Extracting 2017 Census Data
+
+I will now do the same thing with 2017 data as shown above. Finally I will bind the two datasets to create a comprehensive cook country dataset for both years. 
+
+```{r 17census, results=FALSE, warning=FALSE, message=FALSE}
+tracts17 <-  get_acs(geography = "tract",
+          variables = c("B25026_001E","B02001_002E",
+                        "B15001_050E","B15001_009E",
+                        "B19013_001E", "B25058_001E",
+                        "B06012_002E"), 
+          year=2017, state=17,
+          county= 031, geometry=TRUE) %>% 
+  st_transform('ESRI:103272') %>%
+   dplyr::select( -NAME, -moe) %>%
+  spread(key = variable, value = estimate) %>%
+  rename(TotalPop = B25026_001, 
+         Whites = B02001_002,
+         FemaleBachelors = B15001_050, 
+         MaleBachelors = B15001_009,
+         MedHHInc = B19013_001, 
+         MedRent = B25058_001,
+         TotalPoverty = B06012_002) %>%
+   mutate(pctWhite = ifelse(TotalPop > 0, Whites / TotalPop, 0),
+         pctBachelors = ifelse(TotalPop > 0, ((FemaleBachelors + MaleBachelors) / TotalPop), 0),
+         pctPoverty = ifelse(TotalPop > 0, TotalPoverty / TotalPop, 0),
+         year = "2017") 
+
+cook_all_tract <- rbind(tracts09,tracts17)
+```
+
+## Loading Chicago Transit Data
+
+I downloaded the train transit data from Chicago's Data Portal and will read it into the dataset.
+
+```{r transit, results=FALSE, message=FALSE, warning=FALSE, }
+train_route <- read_sf("CTA_RailLines/CTA_RailLines.shp")%>%
+  st_transform(st_crs(tracts09))
+train_stop <- st_read("CTA_RailStations/CTA_RailStations.shp")%>%
+  st_transform(st_crs(tracts09))
+```
+Lets try to visualize these development. 
+
+```{r transitplot}
+ggplot()+
+  geom_sf(data = tracts17, col = "skyblue")+
+  geom_sf(data = train_route, col = "darkgreen")+
+  geom_sf(data = train_stop, size = 0.25, col = "maroon")+
+  labs(title = "Train Transit Network in Cook County, Illinois",
+       caption = "Figure 1")+
+  theme_void()
+```
+### Connecting the Stop Data with Census Tract Data
+
+Now that I have all my transit stops, I am going to create a buffer zone around them to identify census tracts that can be classified as transit oriented development.
+
+After creating my individual buffer, I will union it to create an uninterrupted tract of development.
+
+```{r buffers, results=FALSE,message=FALSE,warning=FALSE}
+CTABuffers <- st_buffer(train_stop,2640)%>%
+  st_union()%>%
+  st_as_sf()
+```
+
+Let us visualize our buffer to illustrate it better.
+
+```{r bufferviz}
+ggplot() +
+  geom_sf(data=CTABuffers) +
+  geom_sf(data=train_stop, show.legend = "point") + 
+  labs(title = "CTA Train Stop Buffer",
+  caption = "Figure 2") +
+  theme_void()
+```
+
+Now that we have our stations and its buffer, we must also identify the census tracts which fall within the buffer zone. Hence in the next section, we first identify all the census tracts whose centers fall in the buffer zone. This tracts are labeled as "TOD" or Transit Oriented Development. Inversely, the tracts that which centers do not fall in the buffer zone are identified as "Non-TOD". Here, st_disjoint insures that only the tracts with no overlap of their centers are identified as non-TOD.
+
+To compare rents across 2009 and 2017, we must adjust 2009 rents to 2017 values. To do this, we will calculate the inflation factor by dividing the Consumer Price Index (CPI) of 2017 by the CPI of 2009. Data for both comes from the US Bureau of Statistics. 
+
+```{r TODtracts, warning=FALSE, message=FALSE, results=FALSE}
+chic_allTracts.group <- 
+  rbind(
+    st_centroid(cook_all_tract)[CTABuffers,] %>%
+      st_drop_geometry() %>%
+      left_join(cook_all_tract) %>%
+      st_sf() %>%
+      mutate(TOD = "TOD"),
+    st_centroid(cook_all_tract)[CTABuffers, op = st_disjoint] %>%
+      st_drop_geometry() %>%
+      left_join(cook_all_tract) %>%
+      st_sf() %>%
+      mutate(TOD = "Non-TOD")) %>%
+  mutate(MedRent.inf = ifelse(year == "2009", MedRent * 1.14, MedRent)) 
+```
+Let's visualize what this looks like!
+
+```{r TODviz}
+ggplot()+
+  geom_sf(data = chic_allTracts.group, aes(fill = TOD))+
+  labs(title = "Tracts within Train Station Buffer Zones",
+       caption = "Figure 3")+
+  theme_void()
+```
+
+## Comparing Variables Across 2009 and 2017
+
+Now that we have our data wrangled, let us compare the the distribution of a few key variables between 2009 and 2017 for Transit Oriented Development and Non-Transit Oriented Development. 
+
+Let us begin first to see how Median Rent has changed across time and space in these two types of tracts.
+
+```{r rentviz}
+ggplot() +
+  geom_sf(data = chic_allTracts.group, aes(fill = MedRent)) +
+  scale_fill_distiller(palette = "RdPu", direction = 1, breaks = pretty_breaks()) +
+  facet_grid(TOD ~ year) +
+  labs(title = "Median Rent in 2009 and 2017 for TOD and Non-TOD",
+       caption = "Figure 4") +
+  theme_void()
+```
+
+Here we see that Median rent has increased all across the county with the area around the loop or the densest concentration of train stations having the most striking increase. It is difficult to observe any different between TOD and non-TOD with the naked eye. 
+
+Lets do the same thing with the 3 other variables of interest. 
+
+```{r popviz}
+ggplot() +
+  geom_sf(data = chic_allTracts.group, aes(fill = TotalPop)) +
+  scale_fill_distiller(palette = "Greens", direction = 1, breaks = pretty_breaks()) +
+  facet_grid(TOD~year) +
+  labs(title = "Total Population in 2009 and 2017 for TOD and Non-TOD",
+       caption = "Figure 5") +
+  theme_void()
+```
+Population all across Cook County has remained relatively stable. Infact few census tracts have seen a striking decrease though that is likely due to the tracts being broken down further between 2009 and 2017. Once again we see no perceable difference between TOD and Non-TOD populations. 
+
+```{r bachelorviz}
+ggplot() +
+  geom_sf(data = chic_allTracts.group, aes(fill = pctBachelors)) +
+  scale_fill_distiller(palette = "BuPu", direction = 1, breaks = pretty_breaks()) +
+  facet_grid(TOD~year) +
+  labs(title = "Bachelor Degree Percentage in 2009 and 2017 for TOD and non-TOD",
+       caption = "Figure 6") +
+  theme_void()
+```
+Percentage of the population with Bachelors Degree seems to be the one with the most disparate changes between TOD and non-TOD tracts between 2009 and 2017. Overall, tracts within transit buffer have had populations with higher educational attainment even though the overall population numbers remain the same. However, it is key to note that correlation does not equate to causation and that there might be other reasons for the increasing concentration of highly education people in the urban core—for instace increase in job opportunities.
+
+```{r povertyviz}
+ggplot() +
+  geom_sf(data = chic_allTracts.group, aes(fill = pctPoverty)) +
+  scale_fill_distiller(palette = "Reds", direction = 1, breaks = pretty_breaks()) +
+  facet_grid(TOD~year) +
+  labs(title = "Poverty Percentage in TOD vs Non-TOD 2009 and 2017",
+       caption = "Figure 7") +
+  theme_void()
+```
+
+Overall, Cook County has seen the decreases in poverty across all census tracts. Interstingly, the most drastic decrease in poverty seems to have been in census tracts outside of TODs. 
+
+## TOD Indicators Table
+
+Moving on from the maps, let us compare our indicators of interest at a numeric scale. To do this we first summarize our dataset to show only our indicators of interest in 2009 and 2017.
+
+```{r todtable, warning=FALSE, message=FALSE}
+chic_allTracts.Summary <- 
+  st_drop_geometry(chic_allTracts.group) %>%
+  group_by(year, TOD) %>%
+  summarize(Rent = mean(MedRent, na.rm = T),
+            Population = mean(TotalPop, na.rm = T),
+            Percent_White = mean(pctWhite, na.rm = T),
+            Percent_Bach = mean(pctBachelors, na.rm = T),
+            Percent_Poverty = mean(pctPoverty, na.rm = T))
+
+chic_allTracts.Summary %>%
+  unite(year.TOD, year, TOD, sep = ": ", remove = T) %>%
+  gather(Variable, Value, -year.TOD) %>%
+  mutate(Value = round(Value, 2)) %>%
+  spread(year.TOD, Value) %>%
+  kable() %>%
+  kable_styling() %>%
+  footnote(general_title = "\n",
+           general = "Table 1")
+```
+
+Here, we see that TODs had half the average population of non-TOD census tracts in 2009. Median rent was also comparatively lower. However, the percentage of population with bachelors degree was higher in TODs than non TODs in 2009. Interestingly, despite having few people, the people living in TOD census tracts were poorer on average with TOD tracts having 6% higher poverty percentage. 
+
+Comparing this to 2017, we see that most of these trends remain consistent in TODs with one small but important change—average median rents now are higher in TOD tracts that non-TOD tracts. 
+
+## TOD Comparison Charts
+
+Lets visualize these differences further through a bar chart. 
+
+```{r todchart, results=FALSE} 
+chic_allTracts.Summary %>%
+  gather(Variable, Value, -year, -TOD) %>%
+  ggplot(aes(year, Value, fill = TOD)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~Variable, scales = "free", ncol=5) +
+  scale_fill_manual(values = c("#bae4bc", "#0868ac")) +
+  labs(title = "Indicator differences across time and space") +
+  theme_minimal()+ theme(legend.position="bottom")
+```
+
+From the charts, we see that TODs had much more people with higher educational attainment in 2009, a trend that has only gotten stronger in 2017. Poverty in TODs have decreased a lot more rapidly than poverty in non-TODs. Similarly, while non-TODs have had relatively constant white population, TODs have had more people move into the tracts with a higher proportion of their current residents being white than in 2009.
+
+## Conclusion
+
+From the indicators that we have analyzed, we see that TODs in Chicago have had median rents increase between 2009 and 2017. While non-TODs have also had an increase in rent, the trend is more drastic in TODs. Housing in TODs was cheaper than housing in non-TODs in 2009. However, by 2017, this was no longer the case. Rent in TODs now exceeded rents in non-TODs. 
+
+This increase in rent has come with an increase in population as well, despite populations in non-TODs decreasing between the two years. With more of TODs residents becoming white, we can see that more affluent, whiter residents are moving to TODs making the overall rent there more expensive. 
+
+We cannot fully conclude that this change has been because of transit rather than any other cause. For instance, tracts with transit tend to be around areas with  higher commercial activity. Hence, the churn may have been caused by increasing economic activity in TOD tracts. 
+
+Based on this rudimentary analysis of transit and development in Chicago, we suggest that further study needs to be conducted to unpack the relationships. In the meantime policymakers should consider investing in affordable housing or rent controls in TODs in order to ensure that more vulnerable populations are not priced out of the neighbourhood.
