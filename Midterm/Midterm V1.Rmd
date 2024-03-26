@@ -1,6 +1,6 @@
 ---
 title: "PPA Midterm"
-author: "Revathi Machan, Kamya Khandelwal"
+author: "Kamya Khandelwal, Revathi Machan"
 date: "2024-03-20"
 output: html_document:
   keep_md: yes
@@ -100,6 +100,33 @@ seattleData <- kingsCounty %>%
 seattleData <- seattleData %>%
   select(price, condition, sqft_living, lat, long, yr_built, bedrooms, zipcode, sqft_basement)
 
+seattleData <- seattleData %>%
+  filter(yr_built > 0) 
+
+#categorizing based on basement presence
+seattleData <- seattleData %>%
+  mutate(basementPresent = case_when(
+    sqft_basement == 0 ~ 'No Basement',
+    sqft_basement >= 1 ~ 'Basement'))
+
+#categorizing based on condition
+seattleData <- seattleData %>%
+  mutate(conditionType  = case_when(
+    condition == '1' ~ 'Very Poor',
+    condition == '2' ~ 'Poor',
+    condition == '3' ~ 'Average',
+    condition == '4' ~ 'Good',
+    condition == '5' ~ 'Very Good'))
+
+seattleData <- seattleData %>%
+  mutate(houseSize = case_when(
+    sqft_living >= 2000 ~ 'Big',
+    sqft_living <= 1999 ~ 'Small'))
+
+seattleDisability <- seattleTreeCanopy %>%
+  select(PCT_ADULT_WITH_DISABILITIES)
+
+
 #summary statistics should ideally combine the different datasets 
 #want the summary stats to cover internal (condition, lot size, year built/year renovated) and external (disabilities and sidewalk conditions)
 summary(seattleData)
@@ -112,7 +139,7 @@ seattleDatacorr <- seattleData %>%
 cor(seattleDatacorr)
 corr <- round(cor(seattleDatacorr), 1)
 ggcorrplot(corr,
-           type = "lower",
+           type = "upper",
            lab = TRUE, 
            lab_size = 5,  
            colors = c('#d7191c','#ffffbf','#2c7bb6'),
