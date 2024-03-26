@@ -85,6 +85,13 @@ seattleData <- kingsCounty %>%
   filter(zipcode %in% c("98101","98102","98103","98104","98105", "98106","98107", "98108","98109","98111","98112","98113",'98114","98115"."98116","98117","98118","98119","98120","98121","98122","98123","98124","98125","98126","98131","98132',"98133","98134","98135","98136","98138","98144","98145","98146","98148","98154","98155","98158","98160","98161","98164","98166","98168","98171","98174","98177","98178","98188","98198","98199"))
 
 
+seattleData <- seattleData %>%
+  select(price,bedrooms, bathrooms, condition, sqft_basement, lat, long, yr_built, yr_renovated, zipcode, floors)
+
+#summary statistics should ideally combine the different datasets 
+#want the summary stats to cover internal (basement,price, ), schools, sidewalks, and tree canopy)
+summary(seattleData)
+
 
 ```
 
