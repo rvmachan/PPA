@@ -61,7 +61,7 @@ Identifies potential areas for further model improvement
 
 ```{r setting up the packages}
 if (!require(pacman)){install.packages("pacman"); library(pacman)}
-p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr)
+p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr, ggcorrplot)
 
 ```
 
@@ -97,14 +97,25 @@ seattleData <- kingsCounty %>%
 
 
 seattleData <- seattleData %>%
-  select(price, condition, sqft_lot, lat, long, yr_built, yr_renovated, zipcode)
+  select(price, condition, sqft_living, lat, long, yr_built, bedrooms, zipcode, sqft_basement)
 
 #summary statistics should ideally combine the different datasets 
 #want the summary stats to cover internal (condition, lot size, year built/year renovated) and external (disabilities and sidewalk conditions)
 summary(seattleData)
 
-
 ```
 ```{r corr int}
+seattleDatacorr <- seattleData %>%
+  select(price, condition, sqft_living, yr_built, bedrooms, sqft_basement)
 
+cor(seattleDatacorr)
+corr <- round(cor(seattleDatacorr), 1)
+ggcorrplot(corr,
+           type = "lower",
+           lab = TRUE, 
+           lab_size = 5,  
+           colors = c('#d7191c','#ffffbf','#2c7bb6'),
+           title="Correlation Matrix of Housing Dataset", 
+           ggtheme=theme_bw)
+```
 
