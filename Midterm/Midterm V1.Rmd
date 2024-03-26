@@ -86,10 +86,10 @@ seattleData <- kingsCounty %>%
 
 
 seattleData <- seattleData %>%
-  select(price,bedrooms, bathrooms, condition, sqft_basement, lat, long, yr_built, yr_renovated, zipcode, floors)
+  select(price, condition, sqft_lot, lat, long, yr_built, yr_renovated, zipcode)
 
 #summary statistics should ideally combine the different datasets 
-#want the summary stats to cover internal (basement,price, ), schools, sidewalks, and tree canopy)
+#want the summary stats to cover internal (condition, lot size, year built/year renovated) and external (disabilities and sidewalk conditions)
 summary(seattleData)
 
 
