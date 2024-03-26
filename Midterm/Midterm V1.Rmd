@@ -86,7 +86,15 @@ seattleData <- kingsCounty %>%
 
 
 seattleData <- seattleData %>%
-  select(price, condition, sqft_lot, lat, long, yr_built, yr_renovated, zipcode)
+  select(price, condition, sqft_living, lat, long, yr_built, bedrooms, zipcode, sqft_basement)
+seattleData <- seattleData %>%
+  filter(yr_built > 0) %>%
+  mutate(basementPresent = case_when(
+    sqft_basement == 0 ~ 'No Basement',
+    sqft_basement >= 1 ~ 'Basement'
+  ))
+
+
 seattleDisability <- seattleTreeCanopy %>%
   select(PCT_ADULT_WITH_DISABILITIES)
 
