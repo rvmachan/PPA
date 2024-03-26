@@ -107,8 +107,8 @@ seattleData <- seattleData %>%
 
 seattleData <- seattleData %>%
   mutate(houseSize = case_when(
-    sqft_living
-  )
+    sqft_living >= 2000 ~ 'Big',
+    sqft_living <= 1999 ~ 'Small'))
 
 seattleDisability <- seattleTreeCanopy %>%
   select(PCT_ADULT_WITH_DISABILITIES)
