@@ -130,12 +130,9 @@ hud_data_filtered <- hud_data[hud_data$ZIP %in% desired_zips, ]
 #Merging the filtered HUD dataset with the seattle housing data
 seattleData <- merge(seattleData, hud_data_filtered, by.x = "zipcode", by.y = "ZIP", all.x = TRUE)
 
+#removing extra columns
 seattleData <- seattleData %>%
-  select(-TRACT.y, -OTH_RATIO.x, -OTH_RATIO.y, -RES_RATIO.x, -RES_RATIO.y, -TOT_RATIO.x, -TOT_RATIO.y)
-
-seattleData <- seattleData %>%
-  select(-BUS_RATIO.x, -BUS_RATIO.y)
-  
+  select(-TRACT.y, -OTH_RATIO.x, -OTH_RATIO.y, -RES_RATIO.x, -RES_RATIO.y, -TOT_RATIO.x, -TOT_RATIO.y, -BUS_RATIO.x, -BUS_RATIO.y)
 
 seattleData <- seattleData %>%
   select(price, condition, sqft_living, lat, long, yr_built, bedrooms, zipcode, sqft_basement)
