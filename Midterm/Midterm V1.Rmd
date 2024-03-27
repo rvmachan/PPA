@@ -68,7 +68,7 @@ Identifies potential areas for further model improvement
 
 ```{r setting up the packages}
 if (!require(pacman)){install.packages("pacman"); library(pacman)}
-p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr, ggcorrplot, readxl)
+p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr, ggcorrplot, readxl, data.table)
 
 ```
 
@@ -296,21 +296,16 @@ seattleTreeCanopy <- st_as_sf()
 
 seattleSidewalks <- read.csv("Sidewalks-API_20240326.csv")
 
+#Police Stations
+seattlePS <- read.csv("")
+
+
+#mapping nearest police stations
+closestPS <- sf::st_nearest_feature(seattleData, )
 
 #mapping nearest transit stops
 kcTransitStops <- read_csv("")
 
-# Define file paths
-inputTransStops <- "/UPenn_Spring_2024/PPA/Midterm/Transit_Stops_for_King_County_Metro___transitstop_point.csv"
-outputTransStops <- "/UPenn_Spring_2024/PPA/Midterm/FilteredTransitStopsKC.csv"
-
-# Define the command to filter rows (e.g., keep rows where the value in the second column is greater than 100)
-filter_command <- paste("grep", "desired_zips", "/UPenn_Spring_2024/PPA/Midterm/Transit_Stops_for_King_County_Metro___transitstop_point.csv"  >  "/UPenn_Spring_2024/PPA/Midterm/FilteredTransitStopsKC.csv", sep="")
-
-# Execute the command
-system(filter_command)
-
-kcTransitStops <- read_csv("")
 
 ```
 
