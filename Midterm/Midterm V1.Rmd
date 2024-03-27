@@ -128,7 +128,7 @@ seattleData <- merge(seattleData, hud_data_filtered, by.x = "zipcode", by.y = "Z
 
 #removing extra columns
 seattleData <- seattleData %>%
-  select(-TRACT.y, -OTH_RATIO.x, -OTH_RATIO.y, -RES_RATIO.x, -RES_RATIO.y, -TOT_RATIO.x, -TOT_RATIO.y, -BUS_RATIO.x, -BUS_RATIO.y)
+  select(-OTH_RATIO, -RES_RATIO, -TOT_RATIO, -BUS_RATIO)
 
 seattleData <- seattleData %>%
   select(price, condition, sqft_living, geometry, yr_built, bedrooms, zipcode, sqft_basement)
