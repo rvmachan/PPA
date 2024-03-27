@@ -87,7 +87,10 @@ The code below is used to import the foundational dataset for our model. This da
 ```{r Reading Data, results= 'hide'}
 
 kingsCounty <- read.csv("kc_house_data.csv")
-st_crs(kingsCounty)
+kingsCoSF <- st_as_sf(kingsCounty, coords = c("long", "lat"), crs = 4326)
+
+crs <- st_crs(kingsCoSF)
+print(crs)
 
 seattleSchools <- read.csv("Seattle_Public_Schools_Sites_2023-2024.csv")
 seattleTreeCanopy <- read.csv("Seattle_Tree_Canopy_2016_2021_RSE_Census_Tracts.csv")
