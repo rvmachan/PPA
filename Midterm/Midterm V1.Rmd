@@ -132,6 +132,8 @@ seattleDisability <- seattleTreeCanopy %>%
 summary(seattleData)
 
 ```
+
+
 ```{r corr int}
 seattleDatacorr <- seattleData %>%
   select(price, condition, sqft_living, yr_built, bedrooms, sqft_basement)
@@ -146,4 +148,44 @@ ggcorrplot(corr,
            title="Correlation Matrix of Housing Dataset", 
            ggtheme=theme_bw)
 ```
+
+```{r impute missing data}
+
+seattleData <- seattleData %>%
+  mutate(bedroomIndex = case_when(
+    bedrooms >= 1 ~ 1, 
+    bedrooms < 1 ~ 0))
+
+seattleData$bedroomIndex[is.na(seattleData$bedroomIndex)] <- 0
+
+lm(bedrooms ~ sqft_living, data = seattleData)
+for(i in 1:nrow(seattleData))
+{
+  if(seattleData$bedroomIndex[i] == 0)
+  {seattleData$bedrooms[i] = 1.9054627 +  0.0007142*seattleData$sqft_living}
+}
+
+seattleData$bedrooms <- round(seattleData$bedrooms, digits = 0)
+
+
+```
+
+```{r creating new variables}
+
+seattleData <- seattleData %>%
+  mutate(pricePerFt2 = (price/sqft_living)) #might need to do the linear regression bathroom and rooms for this stuff
+
+seattleData <- seattleData %>%
+  mutate(buildingAge = (2015 -(yr_built)))
+```
+
+
+###Census Data Collection
+
+```{r}
+
+```
+
+
+
 
