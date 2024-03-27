@@ -99,7 +99,6 @@ print(crs)
 #Data from HUD USPS Zipcode Crosswalk files
 hud_data <- read_excel("ZIP_TRACT_032015.xlsx")
 
-#List of zipcodes (Seattle) that we want census tracts for
 desired_zips <- c("98101", "98102", "98103", "98104", "98105", "98106", "98107", "98108", 
                   "98109", "98111", "98112", "98113", "98114", "98115", "98116", "98117", 
                   "98118", "98119", "98120", "98121", "98122", "98123", "98124", "98125", 
