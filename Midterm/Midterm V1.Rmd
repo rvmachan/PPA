@@ -132,6 +132,10 @@ seattleData <- seattleData %>%
   select(-OTH_RATIO, -RES_RATIO, -TOT_RATIO, -BUS_RATIO)
 
 seattleData <- seattleData %>%
+  mutate(TRACT = str_sub(TRACT, -6)) # Keep the last 6 characters
+
+
+seattleData <- seattleData %>%
   filter(yr_built > 0) 
 
 #categorizing based on basement presence
@@ -334,17 +338,50 @@ seattleData$dist2NearestTransitStop <- rsgeo::distance_euclidean_pairwise(x,y[cl
 
 ```
 
+```{r pop, warning=FALSE, results='hide'}
+
+kcTracts <- kcTracts %>%
+  mutate(PctWhite = ((White/totalPop)*100),
+         PctBlack = ((Black/totalPop)*100),
+         PctHispanic = ((hispanicLatino/totalPop)*100),
+         PctBachelors = ((bachelors/totalPop)*100),
+         PctPoverty = ((belowPoverty/totalPop)*100))
+
+# Filter kctracts to include only the specified GEOID range
+kcTracts_filtered <- kcTracts %>%
+  filter(as.numeric(GEOID) >= 53033000100 & as.numeric(GEOID) <= 53033030100)
+
+#removing extra columns
+kcTracts_filtered <- kcTracts_filtered %>%
+  select(-medRent, -ownerUnits, -renterUnits, -sameHouse75, -sameHouse1, -medianNoMortgage, -medianMortgage, -bachelors, -belowPoverty, -highSpeedInternet, -noVehicle, -Black, -White, -hispanicLatino, -totalPop, -geometry)
+
+# Check the result
+head(kcTracts_filtered)
+
+```
+```{r merge, warning=FALSE, results='hide'}
+
+kcTracts_filtered <- kcTracts_filtered %>%
+  rename(TRACT = GEOID) %>% # Rename GEOID to TRACT
+  mutate(TRACT = str_sub(TRACT, -6)) # Keep the last 6 characters
+
+# Joining data from two datasets
+seattleData <- st_join(seattleData, kcTracts_filtered)
+```
+
 #Summary Statistics
+
+## Summary Statistics: Internal Variables
 
 These statistics provide an overview of the central tendency, spread, and range of the internal variables for Seattle homes, which include prices, price per square foot, living area size, year built, number of rooms etc.
 
 ```{r summ stat int}
-InternalVariables <- seattleData 
+InternalVariables <- seattleData
 
 InternalVariables <- st_drop_geometry(InternalVariables)
 
 InternalVariables <- InternalVariables %>%
-  dplyr::select("price", "pricePerFt2", "sqft_living", "yr_built", "bedrooms", "bathrooms", "condition", "sqft_basement", "sqft_lot") 
+  dplyr::select("price", "pricePerFt2", "sqft_living", "yr_built", "bedrooms", "bathrooms", "condition", "sqft_basement", "sqft_lot")
 
 stargazer(as.data.frame(InternalVariables), type="text", digits=1, title = "Descriptive Statistics for Seattle Homes Internal Variables", out = "Training_seattleInternal.txt")
 ```
@@ -352,6 +389,37 @@ It is observed that the average sale price of homes in Seattle is approximately 
 
 The average age for a house in Philadelphia is approximately 65 years indicating a large share of the market is held by homes constructed a long time ago.
 
+## Summary Statistics: Demographic Variables
 
+These statistics provide an overview of the central tendency, spread, and range of the internal variables for Seattle homes, which include median income, percentage of white population, percentage of black population, percentage of hispanic population, percentage of population with a bachelor's degree and percentage of population living in poverty.
+
+```{r summ stat dem}
+DemographicVariables <- seattleData
+
+DemographicVariables <- st_drop_geometry(DemographicVariables)
+
+DemographicVariables <- DemographicVariables %>%
+  dplyr::select("PctWhite", "PctBlack", "PctHispanic", "PctBachelors", "PctPoverty", "medIncome") 
+
+stargazer(as.data.frame(DemographicVariables), type="text", digits=1, title = "Descriptive Statistics for Seattle Homes Demographic Variables", out = "Training_PHLSpatial.txt")
+```
+The table presents descriptive statistics for demographic variables related to Seattle homes, offering insights into the characteristics of the population in different areas.
+
+On average, approximately 63.6% of the population in the observed areas is White. The range of White population percentages spans from 7.3% to 93.1%, indicating a wide diversity in racial composition across different areas of Seattle. The same does not hold true for Black and Hispanic population percentages indicating the presence of White-majority neighborhoods in different parts of Seattle.
+
+The average median household income in the observed areas is $108,185.2. However, approximately 8.4% of the population in the observed areas falls below the poverty level, on average.
+
+##Summary Statistics: Spatial Variables
+
+These statistics provide an overview of the central tendency, spread, and range of the internal variables for Seattle homes, which include distances to key nearest amenities.
+
+```{r summ stat spat}
+
+SpatialVariables <- seattleData 
+
+SpatialVariables <- st_drop_geometry(SpatialVariables)
+
+
+```
 
 

@@ -1,0 +1,12 @@
+
+Descriptive Statistics for Seattle Homes Demographic Variables
+=====================================================
+Statistic      N      Mean    St. Dev.  Min     Max  
+-----------------------------------------------------
+PctWhite     63,970   63.6      18.0    7.3    93.1  
+PctBlack     63,970    7.4      7.6     0.0    43.3  
+PctHispanic  63,970   10.1      7.4     0.8    39.1  
+PctBachelors 63,970   24.9      8.4     2.8    53.4  
+PctPoverty   63,970    8.4      5.3     0.0    46.0  
+medIncome    63,760 108,185.7 34,358.2 35,684 250,001
+-----------------------------------------------------
