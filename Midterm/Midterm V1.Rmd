@@ -68,7 +68,7 @@ Identifies potential areas for further model improvement
 
 ```{r setting up the packages}
 if (!require(pacman)){install.packages("pacman"); library(pacman)}
-p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr, ggcorrplot)
+p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr, ggcorrplot, readxl)
 
 ```
 
@@ -95,6 +95,22 @@ seattleSidewalks <- read.csv("Sidewalks-API_20240326.csv")
 
 ```
 
+```{r Reading Data, results= 'hide'}
+
+#Data from HUD USPS Zipcode Crosswalk files
+hud_data <- read_excel("ZIP_TRACT_032015.xlsx")
+
+#List of zipcodes (Seattle) that we want census tracts for
+desired_zips <- c("98101", "98102", "98103", "98104", "98105", "98106", "98107", "98108", 
+                  "98109", "98111", "98112", "98113", "98114", "98115", "98116", "98117", 
+                  "98118", "98119", "98120", "98121", "98122", "98123", "98124", "98125", 
+                  "98126", "98131", "98132", "98133", "98134", "98135", "98136", "98138", 
+                  "98144", "98145", "98146", "98148", "98154", "98155", "98158", "98160", 
+                  "98161", "98164", "98166", "98168", "98171", "98174", "98177", "98178", 
+                  "98188", "98198", "98199")
+
+```
+
 
 ```{r}
 #filtering out data that's not Seattle
@@ -102,6 +118,21 @@ seattleSidewalks <- read.csv("Sidewalks-API_20240326.csv")
 seattleData <- kingsCounty %>%
   filter(zipcode %in% c("98101","98102","98103","98104","98105", "98106","98107", "98108","98109","98111","98112","98113",'98114","98115"."98116","98117","98118","98119","98120","98121","98122","98123","98124","98125","98126","98131","98132',"98133","98134","98135","98136","98138","98144","98145","98146","98148","98154","98155","98158","98160","98161","98164","98166","98168","98171","98174","98177","98178","98188","98198","98199"))
 
+seattleData$zipcode <- as.character(seattleData$zipcode)
+hud_data$ZIP <- as.character(hud_data$ZIP)
+
+#Filtering HUD data for zipcodes of interest
+hud_data_filtered <- hud_data[hud_data$ZIP %in% desired_zips, ]
+
+#Merging the filtered HUD dataset with the seattle housing data
+seattleData <- merge(seattleData, hud_data_filtered, by.x = "zipcode", by.y = "ZIP", all.x = TRUE)
+
+seattleData <- seattleData %>%
+  select(-TRACT.y, -OTH_RATIO.x, -OTH_RATIO.y, -RES_RATIO.x, -RES_RATIO.y, -TOT_RATIO.x, -TOT_RATIO.y)
+
+seattleData <- seattleData %>%
+  select(-BUS_RATIO.x, -BUS_RATIO.y)
+  
 
 seattleData <- seattleData %>%
   select(price, condition, sqft_living, lat, long, yr_built, bedrooms, zipcode, sqft_basement)

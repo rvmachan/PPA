@@ -1,0 +1,178 @@
+﻿OBJECTID,GEOID20,Gross Acres,Land Acres,Water Acres,Tract Name,Tract,Tract Label,Urban Village Demographic Area,Community Reporting Area ID,Community Reporting Area Group,Community Reporting Area Name,Community Reporting Area Neighborhoods,Council District (2024)
+1,53033000402,444.493642659107,444.527260989408,0,Census Tract 4.02,402,4.02,Bitter Lake Village,9.1,9,Broadview/Bitter Lake,"Broadview, Bitter Lake",5
+2,53033000403,180.930715888193,165.408388766113,15.5357624474357,Census Tract 4.03,403,4.03,Bitter Lake Village,9.1,9,Broadview/Bitter Lake,"Broadview, Bitter Lake",5
+3,53033000700,319.838995974031,319.86259596529,0,Census Tract 7,700,7,Lake City,8.2,8,Olympic Hills/Victory Heights,"Lake City, Victory Heights, Olympic Hills, Pinehurst, Jackson Park",5
+4,53033003302,154.942825725466,154.952618753892,0,Census Tract 33.02,3302,33.02,Ballard,10.2,10,Whittier Heights,"Whittier Heights, Loyal Heights, Crown Hill",6
+5,53033003601,166.571396799305,166.583374855686,0,Census Tract 36.01,3601,36.01,Green Lake - Roosevelt,9.4,9,Green Lake,"Green Lake, Meridian, Roosevelt, Woodland Park",6
+6,53033004202,301.690447314343,301.709987526565,0,Census Tract 42.02,4202,42.02,Outside - Northeast,7.3,7,Ravenna/Bryant,"Ravenna, Bryant, Roosevelt, View Ridge, Hawthorne Hills, Windermere, University District",4
+7,53033004701,138.567580493614,141.194285316404,43.7168956935715,Census Tract 47.01,4701,47.01,Ballard,10.4,10,Ballard,"Ballard, West Woodland, Adams",6
+8,53033005304,18.045086178939,18.0461060192494,0,Census Tract 53.04,5304,53.04,University District,7.2,7,University District,"University District, Cowen Park, Ravenna",4
+9,53033005307,32.1285785535983,32.131112771231,0,Census Tract 53.07,5307,53.07,University District,7.2,7,University District,"University District, Cowen Park, Ravenna",4
+10,53033005902,252.768729392632,252.782874861669,0,Census Tract 59.02,5902,59.02,Outside - West,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+11,53033006300,617.681268251869,645.085648973926,873.161692254948,Census Tract 63,6300,63,Outside - East,6.5,6,Madison Park,"Madison Park, Broadmoor, Washington Park, Harrison/Denny-Blaine",3
+12,53033006600,255.027878821901,274.240764884858,207.181800633293,Census Tract 66,6600,66,Eastlake,11.3,11,Cascade/Eastlake,"South Lake Union, Eastlake, Cascade, Denny Triangle",3
+13,53033007502,78.0645076481942,78.0682503186016,0,Census Tract 75.02,7502,75.02,First Hill - Capitol Hill,6.2,6,Capitol Hill,"Capitol Hill, Pike/Pine, Broadway, First Hill",3
+14,53033007800,511.444112636284,518.362843226348,897.712600339797,Census Tract 78,7800,78,Outside - East,5.1,5,Madrona/Leschi,"Madrona, Leschi, Harrison/Denny-Blaine",3
+15,53033007901,66.0304866117975,66.0342182340138,0,Census Tract 79.01,7901,79.01,Central Area,5.3,5,Central Area/Squire Park,"Central Area, Mann, Minor, Squire Park",3
+16,53033008102,137.46069982882,137.564801471261,22.5409529108028,Census Tract 81.02,8102,81.02,Center City,13.2,13,Downtown Commercial Core,"Downtown Commercial Core, West Edge, Central Business District, Pike Place Market, Pioneer Square",7
+17,53033008402,35.9389681624052,35.9404893341879,0,Census Tract 84.02,8402,84.02,First Hill - Capitol Hill,6.2,6,Capitol Hill,"Capitol Hill, Pike/Pine, Broadway, First Hill",3
+18,53033008600,175.771028448185,175.778413210914,0,Census Tract 86,8600,86,First Hill - Capitol Hill,6.1,6,First Hill,"First Hill, Yesler Terrace, Squire Park",2
+19,53033009701,442.862569074907,459.951578909736,397.128742215174,Census Tract 97.01,9701,97.01,Outside - West Seattle,1.4,1,Alki/Admiral,"Alki, Admiral",1
+20,53033010602,354.957037359046,371.908672756915,201.918208899539,Census Tract 106.02,10602,106.02,Morgan Junction,1.2,1,Fauntleroy/Seaview,"Fauntleroy, Gatewood, Morgan Junction, Lincoln Park, Seaview, Fairmount Park",1
+21,53033010701,361.024398934,360.127429477718,0.90539411823264,Census Tract 107.01,10701,107.01,Outside - Delridge,2.2,2,High Point,"High Point, Delridge",1
+22,53033011002,424.904371481427,424.914753956109,0,Census Tract 110.02,11002,110.02,Othello,3.4,3,South Beacon Hill/NewHolly,"South Beacon Hill, NewHolly, Holly Park",2
+23,53033011402,293.108718573034,293.114179721751,0,Census Tract 114.02,11402,114.02,Westwood-Highland Park,2.4,2,Roxhill/Westwood,"Roxhill, Westwood, South Delridge, White Center",1
+25,53033001201,249.123467267854,249.141529958209,0,Census Tract 12.01,1201,12.01,Northgate,8.1,8,Northgate/Maple Leaf,"Maple Leaf, Northgate, Pinehurst",5
+26,53033001800,233.765875573085,233.782694964009,0,Census Tract 18,1800,18,Aurora-Licton Springs,9.2,9,Licton Springs,Licton Springs,5
+27,53033002900,243.681098411602,243.697551295877,0,Census Tract 29,2900,29,Greenwood - Phinney Ridge,9.3,9,Greenwood/Phinney Ridge,"Greenwood, Phinney Ridge, Woodland Park, Crown Hill",6
+28,53033003202,236.220782776271,236.236698508814,0,Census Tract 32.02,3202,32.02,Ballard,10.3,10,Sunset Hill/Loyal Heights,"Sunset Hill, Golden Gardens, Loyal Heights, Shilshole",6
+29,53033004000,604.345598188771,636.19405602732,798.705875510157,Census Tract 40,4000,40,Outside - Northeast,7.5,7,Laurelhurst/Sand Point,"Laurelhurst, Windermere, Sand Point, Hawthorne Hills, Magnuson Park",4
+30,53033004302,81.8205099540995,81.8257347514197,0,Census Tract 43.02,4302,43.02,University District,7.3,7,Ravenna/Bryant,"Ravenna, Bryant, Roosevelt, View Ridge, Hawthorne Hills, Windermere, University District",4
+31,53033004702,65.8286562064753,65.8323331372354,0,Census Tract 47.02,4702,47.02,Ballard,10.4,10,Ballard,"Ballard, West Woodland, Adams",6
+32,53033005803,205.6046280922,205.615646724625,0,Census Tract 58.03,5803,58.03,Interbay,12.2,12,Interbay,Interbay,7
+33,53033007403,29.2948568554617,29.2965669387401,0,Census Tract 74.03,7403,74.03,First Hill - Capitol Hill,6.2,6,Capitol Hill,"Capitol Hill, Pike/Pine, Broadway, First Hill",3
+34,53033007700,261.505111450894,261.517061680187,0,Census Tract 77,7700,77,Central Area,5.3,5,Central Area/Squire Park,"Central Area, Mann, Minor, Squire Park",3
+35,53033008004,66.7659374873164,70.3326163471844,130.16696055651,Census Tract 80.04,8004,80.04,Center City,13.1,13,Belltown,"Belltown, Denny Regrade",7
+36,53033008401,62.0008219978913,62.0039294598942,0,Census Tract 84.01,8401,84.01,First Hill - Capitol Hill,6.2,6,Capitol Hill,"Capitol Hill, Pike/Pine, Broadway, First Hill",3
+37,53033009400,416.679363486655,416.6965231744,0,Census Tract 94,9400,94,Southeast - North,3.6,3,North Beacon Hill/Jefferson Park,"North Beacon Hill, Jefferson Park",2
+38,53033009600,453.200741815795,471.210688517583,342.295810929709,Census Tract 96,9600,96,Admiral - West Seattle Junction,1.4,1,Alki/Admiral,"Alki, Admiral",1
+39,53033009802,227.903370364897,227.909988464577,0,Census Tract 98.02,9802,98.02,Admiral - West Seattle Junction,1.3,1,West Seattle Junction/Genesee Hill,"Seaview, Fairmount Park, Morgan Junction, Genesee Hill, Belvidere, West Seattle Junction, Alaska Junction, Admiral",1
+40,53033010002,234.265491866273,234.274928884183,0,Census Tract 100.02,10002,100.02,Southeast - North,3.6,3,North Beacon Hill/Jefferson Park,"North Beacon Hill, Jefferson Park",2
+41,53033010102,397.387105517678,401.107633069917,536.23473995156,Census Tract 101.02,10102,101.02,Southeast - North,4.2,4,Columbia City,"Columbia City, Brighton, Mt. Baker, Lakewood, Genesee, Hillman City",2
+42,53033010800,998.755477780369,1023.14601020611,79.7243505861767,Census Tract 108,10800,108,Outside - Delridge,2.3,2,Riverview,"Riverview, Delridge",1
+43,53033010900,1339.15113164424,1331.84389081933,102.531188887596,Census Tract 109,10900,109,Duwamish - Georgetown,3.2,3,Georgetown,Georgetown,1
+44,53033000300,299.224596547714,299.247829504166,0,Census Tract 3,300,3,Bitter Lake Village,9.5,9,Haller Lake,"Haller Lake, Pinehurst",5
+45,53033000404,155.915428513293,148.133745748262,7.79395084147809,Census Tract 4.04,404,4.04,Bitter Lake Village,9.1,9,Broadview/Bitter Lake,"Broadview, Bitter Lake",5
+46,53033001100,262.083423402238,262.10097169694,0,Census Tract 11,1100,11,Outside - Northeast,8.2,8,Olympic Hills/Victory Heights,"Lake City, Victory Heights, Olympic Hills, Pinehurst, Jackson Park",5
+47,53033002400,237.830081348396,237.845848753883,0,Census Tract 24,2400,24,Outside - Northeast,7.4,7,Wedgwood/View Ridge,"Wedgwood, View Ridge, Bryant, Matthews Beach",4
+48,53033003602,129.060229506086,129.069565556764,0,Census Tract 36.02,3602,36.02,Green Lake - Roosevelt,9.4,9,Green Lake,"Green Lake, Meridian, Roosevelt, Woodland Park",6
+49,53033004102,411.755659408818,417.585855442828,500.944137771016,Census Tract 41.02,4102,41.02,Outside - Northeast,7.5,7,Laurelhurst/Sand Point,"Laurelhurst, Windermere, Sand Point, Hawthorne Hills, Magnuson Park",4
+50,53033004600,638.871842072568,383.596015991099,255.317187655499,Census Tract 46,4600,46,Green Lake - Roosevelt,9.4,9,Green Lake,"Green Lake, Meridian, Roosevelt, Woodland Park",6
+51,53033005100,217.867589335082,217.88047523564,0,Census Tract 51,5100,51,Fremont - Wallingford,11.2,11,Wallingford,"Wallingford, Meridian, Northlake, University District",4
+52,53033005401,181.180876274109,186.870726686172,152.025655508678,Census Tract 54.01,5401,54.01,Fremont - Wallingford,11.1,11,Fremont,"Fremont, Wallingford, Northlake",4
+53,53033005600,735.65029002949,746.946440961204,382.1445189795,Census Tract 56,5600,56,Outside - West,12.1,12,Magnolia,"Magnolia, Discovery Park, Briarcliff, Lawton Park",6
+54,53033006400,223.285422367606,223.296530989849,0,Census Tract 64,6400,64,Outside - East,6.4,6,Miller Park,"Madison-Miller, Miller Park, Capitol Hill, Stevens",3
+55,53033008300,58.7985824782332,58.7999610818908,0,Census Tract 83,8300,83,First Hill - Capitol Hill,6.1,6,First Hill,"First Hill, Yesler Terrace, Squire Park",3
+56,53033008800,234.389302526823,234.399469996516,0,Census Tract 88,8800,88,Central Area,5.3,5,Central Area/Squire Park,"Central Area, Mann, Minor, Squire Park",3
+57,53033009000,211.481550692004,211.490577172491,0,Census Tract 90,9000,90,Central Area,5.2,5,Judkins Park,"Judkins Park, Central Area, Little Saigon, Atlantic",3
+58,53033009702,548.664183348973,548.682920655732,0,Census Tract 97.02,9702,97.02,Admiral - West Seattle Junction,1.3,1,West Seattle Junction/Genesee Hill,"Seaview, Fairmount Park, Morgan Junction, Genesee Hill, Belvidere, West Seattle Junction, Alaska Junction, Admiral",1
+59,53033010001,575.123379143811,560.226448557817,14.915033728822,Census Tract 100.01,10001,100.01,Southeast - North,3.6,3,North Beacon Hill/Jefferson Park,"North Beacon Hill, Jefferson Park",2
+60,53033010101,215.375863254019,215.382486932907,0,Census Tract 101.01,10101,101.01,Southeast - North,4.2,4,Columbia City,"Columbia City, Brighton, Mt. Baker, Lakewood, Genesee, Hillman City",2
+61,53033010200,691.338350655974,690.791248778725,513.143483355903,Census Tract 102,10200,102,Outside - Southeast,4.3,4,Seward Park,"Seward Park, Hillman City",2
+62,53033011801,291.06294130288,286.84042118796,155.779433360771,Census Tract 118.01,11801,118.01,Rainier Beach,4.1,4,Rainier Beach,"Rainier Beach, Rainier View, Lake Ridge, Dunlap",2
+63,53033011802,283.466665363719,281.604011046184,256.453872410922,Census Tract 118.02,11802,118.02,Rainier Beach,4.1,4,Rainier Beach,"Rainier Beach, Rainier View, Lake Ridge, Dunlap",2
+152,53033000101,102.503303019225,102.511173351685,0,Census Tract 1.01,101,1.01,Lake City,8.3,8,Cedar Park/Meadowbrook,"Cedar Park, Lake City, Meadowbrook, Matthews Beach",5
+153,53033000102,354.875170506409,369.42724051475,227.059698846444,Census Tract 1.02,102,1.02,Lake City,8.3,8,Cedar Park/Meadowbrook,"Cedar Park, Lake City, Meadowbrook, Matthews Beach",5
+154,53033000201,446.422710226043,446.457401125192,0,Census Tract 2.01,201,2.01,Lake City,8.2,8,Olympic Hills/Victory Heights,"Lake City, Victory Heights, Olympic Hills, Pinehurst, Jackson Park",5
+155,53033002000,279.702251225755,272.634579904369,7.08698234468126,Census Tract 20,2000,20,Outside - Northeast,8.1,8,Northgate/Maple Leaf,"Maple Leaf, Northgate, Pinehurst",5
+156,53033002200,691.722840550017,692.902270053851,285.395101810901,Census Tract 22,2200,22,Outside - Northeast,7.4,7,Wedgwood/View Ridge,"Wedgwood, View Ridge, Bryant, Matthews Beach",4
+157,53033003400,194.500409199023,194.511719296431,0,Census Tract 34,3400,34,Greenwood - Phinney Ridge,9.3,9,Greenwood/Phinney Ridge,"Greenwood, Phinney Ridge, Woodland Park, Crown Hill",6
+158,53033003900,240.617379585159,240.633197458486,0,Census Tract 39,3900,39,Outside - Northeast,7.4,7,Wedgwood/View Ridge,"Wedgwood, View Ridge, Bryant, Matthews Beach",4
+159,53033004402,72.8881711047403,72.8931223114656,0,Census Tract 44.02,4402,44.02,Green Lake - Roosevelt,7.2,7,University District,"University District, Cowen Park, Ravenna",4
+160,53033004902,148.031136738017,147.671164473881,4.29172626786695,Census Tract 49.02,4902,49.02,Fremont - Wallingford,11.1,11,Fremont,"Fremont, Wallingford, Northlake",6
+161,53033005201,173.016582405891,172.899882620496,18.0925618309928,Census Tract 52.01,5201,52.01,Fremont - Wallingford,11.2,11,Wallingford,"Wallingford, Meridian, Northlake, University District",4
+162,53033005306,49.5385084065436,49.5419108543515,0,Census Tract 53.06,5306,53.06,University District,7.2,7,University District,"University District, Cowen Park, Ravenna",4
+163,53033006100,274.544219433053,296.13380748507,168.47200128736,Census Tract 61,6100,61,Eastlake,7.1,7,Montlake/Portage Bay,"Montlake, Portage Bay, Interlaken Park, Eastlake, Roanoke Park, Washington Park",3
+164,53033006200,548.194555226699,602.301081885183,59.1461557215316,Census Tract 62,6200,62,Outside - East,7.1,7,Montlake/Portage Bay,"Montlake, Portage Bay, Interlaken Park, Eastlake, Roanoke Park, Washington Park",3
+165,53033006702,75.3015352269044,75.3048708360155,0,Census Tract 67.02,6702,67.02,Center City,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+166,53033006900,223.6487070949,223.660270111585,0,Census Tract 69,6900,69,Outside - West,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+167,53033007201,37.2486779140338,37.2496536459774,0,Census Tract 72.01,7201,72.01,Center City,11.3,11,Cascade/Eastlake,"South Lake Union, Eastlake, Cascade, Denny Triangle",7
+168,53033007301,61.9681659944449,61.970817338758,0,Census Tract 73.01,7301,73.01,Center City,11.3,11,Cascade/Eastlake,"South Lake Union, Eastlake, Cascade, Denny Triangle",7
+169,53033007303,77.4697634207097,77.4742089812023,0,Census Tract 73.03,7303,73.03,Center City,11.3,11,Cascade/Eastlake,"South Lake Union, Eastlake, Cascade, Denny Triangle",7
+170,53033007406,37.268992968464,37.2706576034146,0,Census Tract 74.06,7406,74.06,First Hill - Capitol Hill,6.2,6,Capitol Hill,"Capitol Hill, Pike/Pine, Broadway, First Hill",3
+171,53033007501,73.7031013459406,73.7073345438828,0,Census Tract 75.01,7501,75.01,First Hill - Capitol Hill,6.2,6,Capitol Hill,"Capitol Hill, Pike/Pine, Broadway, First Hill",3
+172,53033008002,57.8976060655771,57.9002503874353,0,Census Tract 80.02,8002,80.02,Center City,13.1,13,Belltown,"Belltown, Denny Regrade",7
+173,53033008900,314.613092184132,313.831989127007,444.311785096641,Census Tract 89,8900,89,Central Area,5.1,5,Madrona/Leschi,"Madrona, Leschi, Harrison/Denny-Blaine",3
+174,53033009500,629.454047073406,641.909850609427,720.62601123862,Census Tract 95,9500,95,Southeast - North,4.4,4,Mt. Baker/North Rainier,"Mt. Baker, North Rainier, Atlantic",2
+175,53033009801,248.260001901815,248.268753750349,0,Census Tract 98.01,9801,98.01,Admiral - West Seattle Junction,1.3,1,West Seattle Junction/Genesee Hill,"Seaview, Fairmount Park, Morgan Junction, Genesee Hill, Belvidere, West Seattle Junction, Alaska Junction, Admiral",1
+176,53033010301,247.755263908932,247.762187718041,0,Census Tract 103.01,10301,103.01,Southeast - North,4.2,4,Columbia City,"Columbia City, Brighton, Mt. Baker, Lakewood, Genesee, Hillman City",2
+177,53033010501,183.349742157102,183.35614684348,0,Census Tract 105.01,10501,105.01,Admiral - West Seattle Junction,1.3,1,West Seattle Junction/Genesee Hill,"Seaview, Fairmount Park, Morgan Junction, Genesee Hill, Belvidere, West Seattle Junction, Alaska Junction, Admiral",1
+178,53033010601,269.148655355335,269.155336131248,0,Census Tract 106.01,10601,106.01,Morgan Junction,1.2,1,Fauntleroy/Seaview,"Fauntleroy, Gatewood, Morgan Junction, Lincoln Park, Seaview, Fairmount Park",1
+179,53033011101,280.915269466488,280.92200019293,0,Census Tract 111.01,11101,111.01,Othello,4.2,4,Columbia City,"Columbia City, Brighton, Mt. Baker, Lakewood, Genesee, Hillman City",2
+180,53033011102,321.372032996796,322.034158058911,282.550177552383,Census Tract 111.02,11102,111.02,Outside - Southeast,4.3,4,Seward Park,"Seward Park, Hillman City",2
+181,53033011300,855.346300507908,844.929408194818,10.4327892117309,Census Tract 113,11300,113,Outside - South Seattle,2.5,2,Highland Park,"Highland Park, Westwood, White Center, South Delridge",1
+182,53033011902,382.421769869947,390.596017241452,300.847589744733,Census Tract 119.02,11902,119.02,Outside - Southeast,4.1,4,Rainier Beach,"Rainier Beach, Rainier View, Lake Ridge, Dunlap",2
+184,53033001702,316.327379342956,316.349251649506,0,Census Tract 17.02,1702,17.02,Crown Hill,9.3,9,Greenwood/Phinney Ridge,"Greenwood, Phinney Ridge, Woodland Park, Crown Hill",5
+185,53033003301,165.354216761942,165.364651113567,0,Census Tract 33.01,3301,33.01,Ballard,10.2,10,Whittier Heights,"Whittier Heights, Loyal Heights, Crown Hill",6
+186,53033003800,154.333436709205,154.343503988214,0,Census Tract 38,3800,38,Outside - Northeast,7.3,7,Ravenna/Bryant,"Ravenna, Bryant, Roosevelt, View Ridge, Hawthorne Hills, Windermere, University District",4
+187,53033004201,307.406122711562,307.427264740962,0,Census Tract 42.01,4201,42.01,Outside - Northeast,7.3,7,Ravenna/Bryant,"Ravenna, Bryant, Roosevelt, View Ridge, Hawthorne Hills, Windermere, University District",4
+188,53033004301,241.959100407758,241.974485469885,0,Census Tract 43.01,4301,43.01,Outside - Northeast,7.3,7,Ravenna/Bryant,"Ravenna, Bryant, Roosevelt, View Ridge, Hawthorne Hills, Windermere, University District",4
+189,53033004901,122.838999359516,122.846957836967,0,Census Tract 49.01,4901,49.01,Fremont - Wallingford,11.1,11,Fremont,"Fremont, Wallingford, Northlake",6
+190,53033005000,187.142095662417,187.152673926593,0,Census Tract 50,5000,50,Fremont - Wallingford,11.2,11,Wallingford,"Wallingford, Meridian, Northlake, University District",4
+191,53033005801,450.375256198777,450.316198764472,64.302503719665,Census Tract 58.01,5801,58.01,Interbay,12.2,12,Interbay,Interbay,7
+192,53033007002,108.972701052984,108.978662504661,0,Census Tract 70.02,7002,70.02,Queen Anne,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+193,53033007101,122.324455759138,122.330507589395,0,Census Tract 71.01,7101,71.01,Center City,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+194,53033007102,83.0001477496362,83.0046745270987,0,Census Tract 71.02,7102,71.02,Center City,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+195,53033007902,106.556915369304,106.562713188624,0,Census Tract 79.02,7902,79.02,Central Area,5.3,5,Central Area/Squire Park,"Central Area, Mann, Minor, Squire Park",3
+196,53033009100,101.461606684613,101.466658903604,0,Census Tract 91,9100,91,Center City,13.3,13,Pioneer Square/International District,"Pioneer Square, International District, Chinatown, Little Saigon, ID, Chinatown-International District",2
+197,53033010302,156.20733546581,156.211867778595,0,Census Tract 103.02,10302,103.02,Southeast - North,4.2,4,Columbia City,"Columbia City, Brighton, Mt. Baker, Lakewood, Genesee, Hillman City",2
+198,53033010402,430.661566945265,430.672803558472,0,Census Tract 104.02,10402,104.02,Outside - Southeast,3.5,3,Beacon Hill,Beacon Hill,2
+199,53033010702,192.766143373939,192.770614777581,0,Census Tract 107.02,10702,107.02,Morgan Junction,2.2,2,High Point,"High Point, Delridge",1
+303,53033001202,202.963970231745,202.978785197425,0,Census Tract 12.02,1202,12.02,Northgate,8.1,8,Northgate/Maple Leaf,"Maple Leaf, Northgate, Pinehurst",5
+304,53033001400,529.6899543242,531.960311060406,52.7295702771684,Census Tract 14,1400,14,Crown Hill,10.1,10,North Beach/Blue Ridge,"Crown Hill, North Beach, Blue Ridge",5
+305,53033001600,472.344142018906,499.241334586316,79.1028805514182,Census Tract 16,1600,16,Crown Hill,10.1,10,North Beach/Blue Ridge,"Crown Hill, North Beach, Blue Ridge",5
+306,53033001701,220.59200295169,220.60777733251,0,Census Tract 17.01,1701,17.01,Greenwood - Phinney Ridge,9.3,9,Greenwood/Phinney Ridge,"Greenwood, Phinney Ridge, Woodland Park, Crown Hill",5
+307,53033002600,307.575449581937,300.635079116545,6.96219412696633,Census Tract 26,2600,26,Green Lake - Roosevelt,7.3,7,Ravenna/Bryant,"Ravenna, Bryant, Roosevelt, View Ridge, Hawthorne Hills, Windermere, University District",4
+308,53033003201,273.816746873411,284.684920944144,334.65481831945,Census Tract 32.01,3201,32.01,Ballard,10.3,10,Sunset Hill/Loyal Heights,"Sunset Hill, Golden Gardens, Loyal Heights, Shilshole",6
+309,53033004800,317.581062750769,315.881975372875,6.64367529006626,Census Tract 48,4800,48,Fremont - Wallingford,11.1,11,Fremont,"Fremont, Wallingford, Northlake",6
+310,53033005202,65.7755320137234,66.5291703133861,4.761226492933,Census Tract 52.02,5202,52.02,University District,11.2,11,Wallingford,"Wallingford, Meridian, Northlake, University District",4
+311,53033006000,325.039233771895,331.282571176568,39.7231785159306,Census Tract 60,6000,60,Outside - West,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+312,53033007302,77.3359915123054,77.3392894428412,0,Census Tract 73.02,7302,73.02,Center City,11.3,11,Cascade/Eastlake,"South Lake Union, Eastlake, Cascade, Denny Triangle",7
+313,53033008003,48.7152255083079,48.7173201959065,0,Census Tract 80.03,8003,80.03,Center City,13.1,13,Belltown,"Belltown, Denny Regrade",7
+314,53033008700,180.968357150311,180.976274913158,0,Census Tract 87,8700,87,Central Area,5.3,5,Central Area/Squire Park,"Central Area, Mann, Minor, Squire Park",3
+315,53033009300,2345.52742947801,2333.69040555187,157.912941225624,Census Tract 93,9300,93,Duwamish - Georgetown,3.3,3,Duwamish/SODO,"Duwamish, SODO, Pioneer Square",1
+316,53033010502,241.145760432976,241.153107181401,0,Census Tract 105.02,10502,105.02,Admiral - West Seattle Junction,1.3,1,West Seattle Junction/Genesee Hill,"Seaview, Fairmount Park, Morgan Junction, Genesee Hill, Belvidere, West Seattle Junction, Alaska Junction, Admiral",1
+317,53033011200,610.225719619988,613.755157639124,34.5072781208284,Census Tract 112,11200,112,South Park,3.1,3,South Park,South Park,1
+318,53033011602,388.523941919971,386.92378416529,194.313293674995,Census Tract 116.02,11602,116.02,Outside - West Seattle,1.2,1,Fauntleroy/Seaview,"Fauntleroy, Gatewood, Morgan Junction, Lincoln Park, Seaview, Fairmount Park",1
+319,53033012100,422.29268279069,429.951502949541,341.215219095912,Census Tract 121,12100,121,Outside - West Seattle,1.1,1,Arbor Heights,"Arbor Heights, Brace Point, Endolyne, Arroyo",1
+320,53033000800,282.157044554529,282.177295531528,0,Census Tract 8,800,8,Lake City,8.3,8,Cedar Park/Meadowbrook,"Cedar Park, Lake City, Meadowbrook, Matthews Beach",5
+321,53033000900,230.381600783912,248.304584030683,456.907487713636,Census Tract 9,900,9,Outside - Northeast,8.3,8,Cedar Park/Meadowbrook,"Cedar Park, Lake City, Meadowbrook, Matthews Beach",5
+322,53033001300,291.781132918521,291.801061723855,0,Census Tract 13,1300,13,Aurora-Licton Springs,9.2,9,Licton Springs,Licton Springs,5
+323,53033001900,411.962804021207,411.991883813857,0,Census Tract 19,1900,19,Northgate,8.1,8,Northgate/Maple Leaf,"Maple Leaf, Northgate, Pinehurst",5
+324,53033002800,244.194427760949,244.21103627887,0,Census Tract 28,2800,28,Greenwood - Phinney Ridge,9.3,9,Greenwood/Phinney Ridge,"Greenwood, Phinney Ridge, Woodland Park, Crown Hill",6
+325,53033003000,368.965971536798,368.989863989294,0,Census Tract 30,3000,30,Crown Hill,10.2,10,Whittier Heights,"Whittier Heights, Loyal Heights, Crown Hill",6
+326,53033003500,317.44734513713,317.467403501308,0,Census Tract 35,3500,35,Greenwood - Phinney Ridge,9.3,9,Greenwood/Phinney Ridge,"Greenwood, Phinney Ridge, Woodland Park, Crown Hill",6
+327,53033004401,171.706653884714,171.718224685619,0,Census Tract 44.01,4401,44.01,Green Lake - Roosevelt,7.2,7,University District,"University District, Cowen Park, Ravenna",4
+328,53033004703,299.148919266085,293.717116852888,38.4414429015003,Census Tract 47.03,4703,47.03,Ballard,10.4,10,Ballard,"Ballard, West Woodland, Adams",6
+329,53033005303,562.24336415147,601.168597921248,185.125421375834,Census Tract 53.03,5303,53.03,University District,7.2,7,University District,"University District, Cowen Park, Ravenna",4
+330,53033005901,193.96357741067,192.343122467389,42.9671779657555,Census Tract 59.01,5901,59.01,Outside - West,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+331,53033006500,283.567684741127,283.582830942146,0,Census Tract 65,6500,65,Outside - East,6.3,6,North Capitol Hill,"North Capitol Hill, Capitol Hill, North Broadway",3
+332,53033006800,177.438460847167,177.447857169096,0,Census Tract 68,6800,68,Queen Anne,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+333,53033007001,88.5278839538541,88.5331632299423,0,Census Tract 70.01,7001,70.01,Queen Anne,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+334,53033007600,141.307731116281,141.315119848013,0,Census Tract 76,7600,76,Central Area,6.4,6,Miller Park,"Madison-Miller, Miller Park, Capitol Hill, Stevens",3
+335,53033008200,92.8548587401118,92.8584958297087,0,Census Tract 82,8200,82,Center City,6.1,6,First Hill,"First Hill, Yesler Terrace, Squire Park",7
+336,53033008500,111.434846254641,111.439090789389,0,Census Tract 85,8500,85,First Hill - Capitol Hill,6.1,6,First Hill,"First Hill, Yesler Terrace, Squire Park",2
+337,53033009200,79.3405569703609,83.6330635125424,38.2677278182259,Census Tract 92,9200,92,Center City,13.3,13,Pioneer Square/International District,"Pioneer Square, International District, Chinatown, Little Saigon, ID, Chinatown-International District",2
+338,53033009900,1612.81207719095,1622.28883820889,585.821376879983,Census Tract 99,9900,99,Outside - Delridge,2.1,2,North Delridge,"North Delridge, Pigeon Point, Avalon, Luna Park, Harbor Island",1
+339,53033011001,266.964980657685,266.97043034702,0,Census Tract 110.01,11001,110.01,Othello,3.4,3,South Beacon Hill/NewHolly,"South Beacon Hill, NewHolly, Holly Park",2
+340,53033011500,380.13284018238,380.140247229231,0,Census Tract 115,11500,115,Outside - Delridge,2.4,2,Roxhill/Westwood,"Roxhill, Westwood, South Delridge, White Center",1
+341,53033011601,383.626623862169,384.134705723016,45.6761942643866,Census Tract 116.01,11601,116.01,Outside - West Seattle,1.2,1,Fauntleroy/Seaview,"Fauntleroy, Gatewood, Morgan Junction, Lincoln Park, Seaview, Fairmount Park",1
+342,53033012000,355.097941290369,355.102294437221,0,Census Tract 120,12000,120,Outside - West Seattle,1.1,1,Arbor Heights,"Arbor Heights, Brace Point, Endolyne, Arroyo",1
+344,53033000202,365.709220986835,365.736968745731,0,Census Tract 2.02,202,2.02,Lake City,8.2,8,Olympic Hills/Victory Heights,"Lake City, Victory Heights, Olympic Hills, Pinehurst, Jackson Park",5
+345,53033000500,695.458641788719,716.173666472704,235.668603236484,Census Tract 5,500,5,Outside - Northwest,9.1,9,Broadview/Bitter Lake,"Broadview, Bitter Lake",5
+346,53033000601,353.647634595089,353.674025331494,0,Census Tract 6.01,601,6.01,Bitter Lake Village,9.5,9,Haller Lake,"Haller Lake, Pinehurst",5
+347,53033000602,595.670433231368,582.075753505483,13.6379931166424,Census Tract 6.02,602,6.02,Bitter Lake Village,9.5,9,Haller Lake,"Haller Lake, Pinehurst",5
+348,53033001000,235.772052436121,235.788696451949,0,Census Tract 10,1000,10,Outside - Northeast,8.3,8,Cedar Park/Meadowbrook,"Cedar Park, Lake City, Meadowbrook, Matthews Beach",5
+349,53033001500,282.378283463929,288.547672269529,130.196118991541,Census Tract 15,1500,15,Outside - Northwest,10.1,10,North Beach/Blue Ridge,"Crown Hill, North Beach, Blue Ridge",6
+350,53033002100,337.390678534884,337.414491221312,0,Census Tract 21,2100,21,Outside - Northeast,7.4,7,Wedgwood/View Ridge,"Wedgwood, View Ridge, Bryant, Matthews Beach",4
+351,53033002500,243.218363624363,243.234228705351,0,Census Tract 25,2500,25,Outside - Northeast,7.3,7,Ravenna/Bryant,"Ravenna, Bryant, Roosevelt, View Ridge, Hawthorne Hills, Windermere, University District",4
+352,53033002700,391.598049693352,391.624222734346,0,Census Tract 27,2700,27,Green Lake - Roosevelt,9.4,9,Green Lake,"Green Lake, Meridian, Roosevelt, Woodland Park",6
+353,53033003100,531.160949802337,552.708761532983,116.817586525593,Census Tract 31,3100,31,Outside - Northwest,10.3,10,Sunset Hill/Loyal Heights,"Sunset Hill, Golden Gardens, Loyal Heights, Shilshole",6
+354,53033004101,383.968352046115,395.856149499863,813.117555576632,Census Tract 41.01,4101,41.01,Outside - Northeast,7.5,7,Laurelhurst/Sand Point,"Laurelhurst, Windermere, Sand Point, Hawthorne Hills, Magnuson Park",4
+355,53033004500,165.796166200404,165.806969746656,0,Census Tract 45,4500,45,Green Lake - Roosevelt,11.2,11,Wallingford,"Wallingford, Meridian, Northlake, University District",6
+356,53033005305,52.6223013622159,52.6252918061274,0,Census Tract 53.05,5305,53.05,University District,7.2,7,University District,"University District, Cowen Park, Ravenna",4
+357,53033005402,114.626306060578,114.632186530601,0,Census Tract 54.02,5402,54.02,Fremont - Wallingford,11.1,11,Fremont,"Fremont, Wallingford, Northlake",4
+358,53033005700,1223.72285002147,1256.68901294996,584.603394454009,Census Tract 57,5700,57,Outside - West,12.1,12,Magnolia,"Magnolia, Discovery Park, Briarcliff, Lawton Park",6
+359,53033005804,576.766542743519,576.853428370458,289.035952503598,Census Tract 58.04,5804,58.04,Interbay,12.2,12,Interbay,Interbay,7
+360,53033006701,83.5871600138208,93.9633039909036,26.0550385427314,Census Tract 67.01,6701,67.01,Center City,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+361,53033006703,147.546973716753,147.554777839141,0,Census Tract 67.03,6703,67.03,Center City,12.3,12,Queen Anne,"Queen Anne, Lower Queen Anne, Uptown, Seattle Center, Westlake",7
+362,53033007202,69.3311199016411,69.3340635000834,0,Census Tract 72.02,7202,72.02,Center City,11.3,11,Cascade/Eastlake,"South Lake Union, Eastlake, Cascade, Denny Triangle",7
+363,53033007203,143.222681078804,143.229939450137,0,Census Tract 72.03,7203,72.03,Center City,11.3,11,Cascade/Eastlake,"South Lake Union, Eastlake, Cascade, Denny Triangle",7
+364,53033007404,37.9837743171282,37.9862747885679,0,Census Tract 74.04,7404,74.04,First Hill - Capitol Hill,6.2,6,Capitol Hill,"Capitol Hill, Pike/Pine, Broadway, First Hill",3
+365,53033007405,32.5750313540513,32.5759024581356,0,Census Tract 74.05,7405,74.05,First Hill - Capitol Hill,6.2,6,Capitol Hill,"Capitol Hill, Pike/Pine, Broadway, First Hill",3
+366,53033007503,46.3408240075442,46.3423903732171,0,Census Tract 75.03,7503,75.03,First Hill - Capitol Hill,6.2,6,Capitol Hill,"Capitol Hill, Pike/Pine, Broadway, First Hill",3
+367,53033008101,68.6904153426562,66.7985151793451,68.613998418061,Census Tract 81.01,8101,81.01,Center City,13.2,13,Downtown Commercial Core,"Downtown Commercial Core, West Edge, Central Business District, Pike Place Market, Pioneer Square",7
+368,53033010401,402.739918628262,402.750636752267,0,Census Tract 104.01,10401,104.01,Othello,3.5,3,Beacon Hill,Beacon Hill,2
+369,53033011401,304.713407939636,304.719236863857,0,Census Tract 114.01,11401,114.01,Westwood-Highland Park,2.4,2,Roxhill/Westwood,"Roxhill, Westwood, South Delridge, White Center",1
+370,53033011700,868.762098261958,868.775077520541,0,Census Tract 117,11700,117,Rainier Beach,3.4,3,South Beacon Hill/NewHolly,"South Beacon Hill, NewHolly, Holly Park",2
+371,53033011901,415.718564219353,415.723669286987,0,Census Tract 119.01,11901,119.01,Outside - Southeast,4.1,4,Rainier Beach,"Rainier Beach, Rainier View, Lake Ridge, Dunlap",2
