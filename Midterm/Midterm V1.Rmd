@@ -39,8 +39,14 @@ predictive model of price incorporating structural and locational characteristic
 - map of residuals 
 
 ## Introduction 
-Clearly states the goal of the analysis	
-Provides a brief overview of the methods for data collection
+
+The housing market in Philadelphia is a reflection of the city's economy and social dynamics. There are various neighborhoods in the city with unique character, amenities, and housing styles. Philadelphia's diverse housing stock includes rowhouses, townhomes, apartments, and single-family homes, catering to different lifestyles and preferences.
+
+This project evaluates factors affecting housing prices to create an accurate and generalizable OLS regression model to predict them. Housing prices in Philadelphia have been subject to fluctuations over the years, influenced by various factors such as the neighborhood, property type, and home condition. Sale prediction algorithms are crucial tools that help different stakeholders in the housing market make informed decisions, identify inequalities, and ensure the real estate market's overall health and fairness. This project builds on this theory and aims to evaluate the factors affecting housing prices to create an accurate and generalizable OLS regression model to predict the housing prices in Philadelphia.
+
+Building a predictive model for property valuation is challenging, requiring selecting the right features, addressing collinearity among variables, choosing appropriate modeling techniques, and ensuring interpretability. Creating this model was an iterative process that involved multiple rounds of trial and error, particularly in attempts to minimize the errors in predictions. The maps, correlation matrix, and scatterplots illustrate various variables that were considered, wrangled, and filtered as part of the data analysis process.
+
+
 
 ## Data Description
 Presents a comprehensive table of summary statistics	
