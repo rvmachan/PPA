@@ -289,9 +289,26 @@ seattleData$dist2NearestSchool <- rsgeo::distance_euclidean_pairwise(x, y[closes
                
                
 seattleTreeCanopy <- read.csv("Seattle_Tree_Canopy_2016_2021_RSE_Census_Tracts.csv")
-seattleTreeCanopy <- st_as_sf(seattleTreeCanopy, coords = )
+seattleTreeCanopy <- st_as_sf()
 
 seattleSidewalks <- read.csv("Sidewalks-API_20240326.csv")
+
+
+#mapping nearest transit stops
+kcTransitStops <- read_csv("")
+
+# Define file paths
+inputTransStops <- "/UPenn_Spring_2024/PPA/Midterm/Transit_Stops_for_King_County_Metro___transitstop_point.csv"
+outputTransStops <- "/UPenn_Spring_2024/PPA/Midterm/FilteredTransitStopsKC.csv"
+
+# Define the command to filter rows (e.g., keep rows where the value in the second column is greater than 100)
+filter_command <- paste("grep", "desired_zips", "/UPenn_Spring_2024/PPA/Midterm/Transit_Stops_for_King_County_Metro___transitstop_point.csv"  >  "/UPenn_Spring_2024/PPA/Midterm/FilteredTransitStopsKC.csv", sep="")
+
+# Execute the command
+system(filter_command)
+
+kcTransitStops <- read.csv("")
+
 ```
 
 
