@@ -89,6 +89,8 @@ The code below is used to import the foundational dataset for our model. This da
 kingsCounty <- read.csv("kc_house_data.csv")
 kingsCoSF <- st_as_sf(kingsCounty, coords = c("long", "lat"), crs = 4326)
 
+seattleTreeCanopy <- read.csv("Seattle_Tree_Canopy_2016_2021_RSE_Census_Tracts.csv")
+
 crs <- st_crs(kingsCoSF)
 print(crs)
 
@@ -130,9 +132,6 @@ seattleData <- seattleData %>%
   select(-OTH_RATIO, -RES_RATIO, -TOT_RATIO, -BUS_RATIO)
 
 seattleData <- seattleData %>%
-  select(price, condition, sqft_living, geometry, yr_built, bedrooms, zipcode, sqft_basement)
-
-seattleData <- seattleData %>%
   filter(yr_built > 0) 
 
 #categorizing based on basement presence
@@ -167,18 +166,22 @@ summary(seattleData)
 
 
 ```{r corr int}
-seattleDatacorr <- seattleData %>%
-  select(price, condition, sqft_living, yr_built, bedrooms, sqft_basement)
+int_variables <- c("price", "condition", "sqft_living", "yr_built", "bedrooms", "bathrooms", "sqft_basement", "sqft_lot")
 
-cor(seattleDatacorr)
-corr <- round(cor(seattleDatacorr), 1)
-ggcorrplot(corr,
-           type = "upper",
-           lab = TRUE, 
-           lab_size = 5,  
-           colors = c('#d7191c','#ffffbf','#2c7bb6'),
-           title="Correlation Matrix of Housing Dataset", 
-           ggtheme=theme_bw)
+seattleDatacorr <- seattleData %>% 
+  st_drop_geometry() %>% 
+  select(all_of(int_variables)) %>% 
+  na.omit()
+
+corr <- cor(seattleDatacorr)
+rounded_corr <- round(corr, 1)
+ggcorrplot(rounded_corr,
+           type = "lower",
+           lab = TRUE,
+           lab_size = 5,
+           colors = c("#d7191c", "#ffffbf", "#2c7bb6"),
+           title = "Correlation Matrix of Housing Dataset",
+           ggtheme = theme_bw())
 ```
 
 ```{r impute missing data}
