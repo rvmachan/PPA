@@ -92,22 +92,18 @@ kingsCoSF <- st_as_sf(kingsCounty, coords = c("long", "lat"), crs = 4326)
 crs <- st_crs(kingsCoSF)
 print(crs)
 
-seattleSchools <- read.csv("Seattle_Public_Schools_Sites_2023-2024.csv")
-seattleTreeCanopy <- read.csv("Seattle_Tree_Canopy_2016_2021_RSE_Census_Tracts.csv")
-seattleSidewalks <- read.csv("Sidewalks-API_20240326.csv")
-
 ```
 
 
 ```{r}
 #filtering out data that's not Seattle
 
-seattleData <- kingsCounty %>%
+seattleData <- kingsCoSF %>%
   filter(zipcode %in% c("98101","98102","98103","98104","98105", "98106","98107", "98108","98109","98111","98112","98113",'98114","98115"."98116","98117","98118","98119","98120","98121","98122","98123","98124","98125","98126","98131","98132',"98133","98134","98135","98136","98138","98144","98145","98146","98148","98154","98155","98158","98160","98161","98164","98166","98168","98171","98174","98177","98178","98188","98198","98199"))
 
 
 seattleData <- seattleData %>%
-  select(price, condition, sqft_living, lat, long, yr_built, bedrooms, zipcode, sqft_basement)
+  select(price, condition, sqft_living, geometry, yr_built, bedrooms, zipcode, sqft_basement)
 
 seattleData <- seattleData %>%
   filter(yr_built > 0) 
@@ -196,7 +192,7 @@ acsVariables2015 <- load_variables(2015, "acs5", cache = TRUE)
 
 # 2021, A
 
-# Retrieve ACS data for Philadelphia tracts in 2020
+# Retrieve ACS data for Seattle tracts in 2015
 kcTracts <- get_acs(
   geography = "tract",
   variables = c(
@@ -218,8 +214,8 @@ kcTracts <- get_acs(
     "B03001_003"    # Hispanic or Latino Origin of Population
   ),
   year = 2021,
-  state = "WA",
-  county = "King",
+  state = "WA",#washington
+  county = "King",#kings county
   geometry = TRUE,
   output = "wide"
 )%>%
@@ -245,12 +241,30 @@ kcTracts <- get_acs(
 # Transform the data to ESRI:102728 projection
 kcTracts <- kcTracts %>% st_transform(st_crs(seattleData)) #need to add projection to kc stuff earlier
 
-#also need to filter out the tracts for seattle 
+#also need to filter out the tracts for seattle!!!! 
 
 ```
 
 ```{r}
-seattleSchools
+seattleSchools <- read.csv("Seattle_Public_Schools_Sites_2023-2024.csv")
+seattleSchools <- st_as_sf(seattleSchools, coords = c("Longitude", "Latitude"), crs = 4326) %>%
+  st_transform(st_crs(seattleData))
+
+#mapping nearest school
+closestSchool <- sf::st_nearest_feature(seattleData, seattleSchools)
+
+#converting into rsgeo geometries
+x <- rsgeo::as_rsgeo(seattleData)
+y <- rsgeo::as_rsgeo(seattleSchools)
+
+## Calculating distance
+seattleData$dist2NearestSchool <- rsgeo::distance_euclidean_pairwise(x, y[closestSchool])
+               
+               
+seattleTreeCanopy <- read.csv("Seattle_Tree_Canopy_2016_2021_RSE_Census_Tracts.csv")
+seattleTreeCanopy <- st_as_sf(seattleTreeCanopy, coords = )
+
+seattleSidewalks <- read.csv("Sidewalks-API_20240326.csv")
 ```
 
 
