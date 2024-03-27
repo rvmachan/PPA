@@ -290,21 +290,46 @@ y <- rsgeo::as_rsgeo(seattleSchools)
 ## Calculating distance
 seattleData$dist2NearestSchool <- rsgeo::distance_euclidean_pairwise(x, y[closestSchool])
                
-               
-seattleTreeCanopy <- read.csv("Seattle_Tree_Canopy_2016_2021_RSE_Census_Tracts.csv")
-seattleTreeCanopy <- st_as_sf()
-
-seattleSidewalks <- read.csv("Sidewalks-API_20240326.csv")
 
 #Police Stations
-seattlePS <- read.csv("")
+kcPS <- read.csv("Police_Station_Locations_in_King_County___kcp_loc_point.csv")
+kcPS <- st_as_sf(seattlePS, coords = c("X", "Y"), crs = 4326) %>%
+  st_transform(st_crs(seattleData))
 
+seattlePS <- kcPS %>%
+  filter(ZIPCODE %in% c("98101","98102","98103","98104","98105", "98106","98107", "98108","98109","98111","98112","98113",'98114","98115"."98116","98117","98118","98119","98120","98121","98122","98123","98124","98125","98126","98131","98132',"98133","98134","98135","98136","98138","98144","98145","98146","98148","98154","98155","98158","98160","98161","98164","98166","98168","98171","98174","98177","98178","98188","98198","98199"))
 
 #mapping nearest police stations
-closestPS <- sf::st_nearest_feature(seattleData, )
+closestPS <- sf::st_nearest_feature(seattleData, seattlePS)
 
-#mapping nearest transit stops
-kcTransitStops <- read_csv("")
+#converting into rsgeo geometries
+x <- rsgeo::as_rsgeo(seattleData)
+y <- rsgeo::as_rsgeo(seattlePS)
+
+#calculating distance
+seattleData$dist2NearestPS <- rsgeo::distance_euclidean_pairwise(x,y[closestPS])
+
+
+#Transit Stops
+kcTransitStops <- read.csv("Transit_Stops_for_King_County_Metro___transitstop_point.csv")
+kcTransitStops <- st_as_sf(seattleTransitStops, coords = c("X", "Y"), crs = 4326) %>%
+  st_transform(st_crs(seattleData))
+
+seattleTransitStops <- kcTransitStops %>%
+  filter(ZIPCODE %in% c("98101","98102","98103","98104","98105", "98106","98107", "98108","98109","98111","98112","98113",'98114","98115"."98116","98117","98118","98119","98120","98121","98122","98123","98124","98125","98126","98131","98132',"98133","98134","98135","98136","98138","98144","98145","98146","98148","98154","98155","98158","98160","98161","98164","98166","98168","98171","98174","98177","98178","98188","98198","98199"))
+
+
+
+#mapping nearest transit stop
+closestTransitStop <- sf::st_nearest_feature(seattleData, seattleTransitStops)
+
+#converting into rsgeo geometries
+x <- rsgeo::as_rsgeo(seattleData)
+y <- rsgeo::as_rsgeo(seattleTransitStops)
+
+#calculating distance
+seattleData$dist2NearestTransitStop <- rsgeo::distance_euclidean_pairwise(x,y[closestTransitStop])
+
 
 
 ```
