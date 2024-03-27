@@ -183,8 +183,67 @@ seattleData <- seattleData %>%
 ###Census Data Collection
 
 ```{r}
+acsVariables2015 <- load_variables(2015, "acs5", cache = TRUE)
+
+# 2021, A
+
+# Retrieve ACS data for Philadelphia tracts in 2020
+kcTracts <- get_acs(
+  geography = "tract",
+  variables = c(
+    "B01003_001",   # Total Population
+    "B19013_001",   # Median Household Income
+    "B25058_001",   # Median Rent
+    "B25008_002",   # Owner-Occupied Units
+    "B25008_003",   # Renter-Occupied Units
+    "B07001_032",   # Same House 75 Years Ago
+    "B07001_017",   # Same House 1 Year Ago
+    "B25088_003",   # Median Selected Monthly Owner Costs (homes without a mortgage)
+    "B25088_002",   # Median Selected Monthly Owner Costs (homes with a mortgage)
+    "B15003_022",   # Educational Attainment: Bachelor's Degree
+    "B17001_002",   # Percentage of Population Below the Poverty Level
+    "B28002_004",   # Percentage of Housing Units with High-Speed Internet
+    "B25044_003",   # Percentage of Housing Units with No Vehicle Available
+    "B02001_002",   # Race and Ethnicity: White Alone
+    "B02001_003",   # Race and Ethnicity: Black or African American Alone
+    "B03001_003"    # Hispanic or Latino Origin of Population
+  ),
+  year = 2021,
+  state = "WA",
+  county = "King",
+  geometry = TRUE,
+  output = "wide"
+)%>%
+  select(-NAME, -ends_with("M")) %>%
+  rename(totalPop = B01003_001E,                           # Total Population
+         medIncome = B19013_001E,                         # Median Household Income
+         medRent = B25058_001E,                           # Median Rent
+         ownerUnits = B25008_002E,                        # Owner-Occupied Units
+         renterUnits = B25008_003E,                       # Renter-Occupied Units
+         sameHouse75 = B07001_032E,                      # Same House 75 Years Ago
+         sameHouse1 = B07001_017E,                       # Same House 1 Year Ago
+         medianNoMortgage = B25088_003E,          # Median Selected Monthly Owner Costs (homes without a mortgage)
+         medianMortgage = B25088_002E,        # Median Selected Monthly Owner Costs (homes with a mortgage)
+         bachelors = B15003_022E,                      # Educational Attainment: Bachelor's Degree
+         belowPoverty = B17001_002E,                  # Percentage of Population Below the Poverty Level
+         highSpeedInternet = B28002_004E,  # Percentage of Housing Units with High-Speed Internet
+         noVehicle = B25044_003E,           # Percentage of Housing Units with No Vehicle Available
+         White = B02001_002E,                         # Race and Ethnicity: White Alone
+         Black = B02001_003E,                         # Race and Ethnicity: Black or African American Alone
+         hispanicLatino = B03001_003E                     # Race and Ethnicity: Hispanic or Latino
+         )
+
+# Transform the data to ESRI:102728 projection
+kcTracts <- kcTracts %>% st_transform(st_crs(seattleData)) #need to add projection to kc stuff earlier
+
+#also need to filter out the tracts for seattle 
 
 ```
+
+```{r}
+seattleSchools
+```
+
 
 
 
