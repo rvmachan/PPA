@@ -314,6 +314,23 @@ kcTransitStops <- read.csv("")
 
 ```
 
+#Summary Statistics
+
+These statistics provide an overview of the central tendency, spread, and range of the internal variables for Seattle homes, which include prices, price per square foot, living area size, year built, number of rooms etc.
+
+```{r summ stat int}
+InternalVariables <- seattleData 
+
+InternalVariables <- st_drop_geometry(InternalVariables)
+
+InternalVariables <- InternalVariables %>%
+  dplyr::select("price", "pricePerFt2", "sqft_living", "yr_built", "bedrooms", "bathrooms", "condition", "sqft_basement", "sqft_lot") 
+
+stargazer(as.data.frame(InternalVariables), type="text", digits=1, title = "Descriptive Statistics for Seattle Homes Internal Variables", out = "Training_seattleInternal.txt")
+```
+It is observed that the average sale price of homes in Seattle is approximately 502,782.6 USD. The sale prices vary quite widely with a high standard deviation, indicating a more heterogenous market. 
+
+The average age for a house in Philadelphia is approximately 65 years indicating a large share of the market is held by homes constructed a long time ago.
 
 
 
