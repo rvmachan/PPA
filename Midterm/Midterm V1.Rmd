@@ -369,6 +369,11 @@ kcTracts_filtered <- kcTracts_filtered %>%
   rename(TRACT = GEOID) %>% # Rename GEOID to TRACT
   mutate(TRACT = str_sub(TRACT, -6)) # Keep the last 6 characters
 
+kcTractsSF <- st_as_sf()
+
+seattleTracts <- sf::st_join(seattleData, kcTracts_filtered, by = "TRACT") #trying to join it by tract only so we drop all the non-Seattle ones but it won't work dunno why
+  
+
 # Joining data from two datasets
 seattleData <- st_join(seattleData, kcTracts_filtered)
 ```
@@ -466,11 +471,12 @@ mapTheme <- function() {
 palettee <- c('#d7191c', '#fdae61', '#ffffbf', '#abd9e9', '#2c7bb6')
 
 
+#mapping internal variables (condition, basement presence, house size, price)
+
 #mapping sale price
 ggplot() +
   geom_sf(data= kcTracts, fill = "grey89", color = "darkgrey") +
-  geom_sf(data = seattleData, aes(colour = q5(price)),
-          show.legend = "point", size = 0.75) +
+  geom_sf(data = seattleData, aes(colour = q5(price))) +
   scale_fill_manual(values = c('red', 'orange', 'lightyellow', 'lightblue', 'skyblue3'),
                       labels = qBr(seattleData, "price"),
                       name = "Quintile Breaks :/n Sale Price",
@@ -479,6 +485,109 @@ ggplot() +
        caption = "Figure 3.1.1") +
   mapTheme()
 
+#IT DOES NOT WORK AND I DO NOT KNOW WHY AND IM 99% SURE ITS A SMALL DUMB THING
+
+
+#mapping interior condition - works
+
+ggplot()+
+  geom_sf(data = kcTracts, fill = "grey89", color = "darkgrey") +
+  geom_sf(data = seattleData, aes(colour =(conditionType)),
+          show.legend = "point", size = .5) +
+  scale_colour_manual(values = palettee, name = "Condition Type") +
+  labs(title = "Properties by Condition Type", 
+       subtitle = "Seattle 2015",
+       caption = "Figure 3.1.3")+
+  theme_void()  
+
+#mapping basement presence
+ggplot()+
+  geom_sf(data = kcTracts, fill = "grey89", color = "darkgrey") +
+  geom_sf(data = seattleData, aes(colour =(basementPresent)),
+          show.legend = "point", size = .5) +
+  scale_colour_manual(values = palettee, name = "Basement Presence") +
+  labs(title = "Properties by Basement Presence", 
+       subtitle = "Seattle 2015",
+       caption = "Figure 3.1.4")+
+  theme_void()  
+
+#mapping house size 
+ggplot()+
+  geom_sf(data = kcTracts, fill = "grey89", color = "darkgrey") +
+  geom_sf(data = seattleData, aes(colour =(houseSize)),
+          show.legend = "point", size = .5) +
+  scale_colour_manual(values = palettee, name = "House Size") +
+  labs(title = "Properties by Size", 
+       subtitle = "Seattle 2015",
+       caption = "Figure 3.1.5")+
+  theme_void()  
 
 ```
+
+```{r}
+#Mapping Spatial Variables
+
+#spatial variables are schools, police stations, and transit stops
+#can't do this until i can figure out why its not working
+#problem is in the Scale_colour_manual - can't figure out what the issue is though
+
+ggplot()+
+  geom_sf(data = kcTracts, fill ="grey89", color = "darkgrey") +
+  geom_sf(data = seattleData, aes(colour = q5(price)),
+          show.legend = "point", size = .75, alpha =0.3) +
+  geom_sf(data = seattleSchools, colour = "black", size = 1.5, alpha = 0.6) +
+  scale_colour_manual(values = palettee,
+                      labels = qBr(seattleData, "price"),
+                      name = "Quintile Breaks :/nSale Prices",
+                      na.value = NA) +
+  labs(title = "Properties Around Schools", 
+       subtitle = "Seattle 2015",
+       caption = "Figure 3.2.1") +
+  mapTheme()
+
+
+```
+
+```{r}
+#Mapping Demographic Variables
+
+#mapping median income around sold properties - are we doing sold properties??
+ggplot()+
+  geom_sf(data = kcTracts, fill = "grey89", color = "darkgrey") +
+  geom_sf(data = kcTracts, aes(fill = medIncome, color = "transparent", alpha = 0.5)+
+            scale_fill_brewer(palette = "BuPu",
+                              labels = qBr(kcTracts, "medIncome"),
+                              name = "Median Income in Quintile Breaks"))+
+  geom_sf(data = seattleData, aes(colour = price),
+          show.legend = "point", size = .2)+
+  scale_colour_manual(values = palettee,
+                      labels = qBr(seattleData, "price"),
+                      name = "Quintile Breaks in Sale Prices",
+                      na.value = NA) +
+  labs(title ="Median Income Around Sold Properties", 
+       subtitle = "Seattle 2015",
+       caption = "Figure 3.3.1") +
+  mapTheme()
+
+
+#mapping pct poverty around sold properties
+ggplot()+
+  geom_sf(data = kcTracts, fill = "grey89", color = "darkgrey") +
+  geom_sf(data = kcTracts, aes(fill = pctPoverty, color = "transparent", alpha = 0.5)+
+            scale_fill_brewer(palette = "BuPu",
+                              labels = qBr(kcTracts, "medIncome"),
+                              name = "Median Income in Quintile Breaks"))+
+  geom_sf(data = seattleData, aes(colour = price),
+          show.legend = "point", size = .2)+
+  scale_colour_manual(values = palettee,
+                      labels = qBr(seattleData, "price"),
+                      name = "Quintile Breaks in Sale Prices",
+                      na.value = NA) +
+  labs(title ="Median Income Around Sold Properties", 
+       subtitle = "Seattle 2015",
+       caption = "Figure 3.3.1") +
+  mapTheme()
+```
+
+
 
