@@ -68,7 +68,7 @@ Identifies potential areas for further model improvement
 
 ```{r setting up the packages}
 if (!require(pacman)){install.packages("pacman"); library(pacman)}
-p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr, ggcorrplot, readxl, data.table)
+p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr, ggcorrplot, readxl, data.table, tmap)
 
 ```
 
@@ -338,6 +338,8 @@ seattleData$dist2NearestTransitStop <- rsgeo::distance_euclidean_pairwise(x,y[cl
 
 ```
 
+
+
 ```{r pop, warning=FALSE, results='hide'}
 
 kcTracts <- kcTracts %>%
@@ -359,6 +361,8 @@ kcTracts_filtered <- kcTracts_filtered %>%
 head(kcTracts_filtered)
 
 ```
+
+
 ```{r merge, warning=FALSE, results='hide'}
 
 kcTracts_filtered <- kcTracts_filtered %>%
@@ -422,4 +426,59 @@ SpatialVariables <- st_drop_geometry(SpatialVariables)
 
 ```
 
+#Exploratory Mapping and analysis
+```{r}
+
+#making a function for the quintile breaks
+qBr <- function(data, var_name) {
+  # Extract the variable from the dataframe
+  var <- data[[var_name]]
+  # Calculate quintiles
+  quintiles <- quantile(var, probs = seq(0, 1, by = 0.25), na.rm = TRUE)
+  # Return breaks
+  return(quintiles)
+}
+
+#function for map theme
+
+mapTheme <- function() {
+  tm_shape() +
+    tm_layout(
+      # Customize map background and frame
+      background.color = "lightblue",
+      frame = FALSE,
+      
+      # Customize text style and color
+      title.text.size = 1.2,
+      text.color = "darkblue",
+      
+      # Customize legend appearance
+      legend.position = c("right", "bottom"),
+      legend.bg.color = "lightgray",
+      legend.text.size = 0.8,
+      legend.title.size = 0.9,
+      
+      # Add more customizations as needed
+    )
+}
+
+#palette
+palettee <- c('#d7191c', '#fdae61', '#ffffbf', '#abd9e9', '#2c7bb6')
+
+
+#mapping sale price
+ggplot() +
+  geom_sf(data= kcTracts, fill = "grey89", color = "darkgrey") +
+  geom_sf(data = seattleData, aes(colour = q5(price)),
+          show.legend = "point", size = 0.75) +
+  scale_fill_manual(values = c('red', 'orange', 'lightyellow', 'lightblue', 'skyblue3'),
+                      labels = qBr(seattleData, "price"),
+                      name = "Quintile Breaks :/n Sale Price",
+                      na.value = NA) +
+  labs(title = "Properties by Sale Price", subtitle = "Philadelphia 2022-23",
+       caption = "Figure 3.1.1") +
+  mapTheme()
+
+
+```
 
