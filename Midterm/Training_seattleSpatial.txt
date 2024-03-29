@@ -1,0 +1,9 @@
+
+Descriptive Statistics for Seattle Homes Spatial Variables (Figure 4.1)
+===========================================================
+Statistic                 N    Mean  St. Dev.  Min    Max  
+-----------------------------------------------------------
+dist2NearestSchool      64,080 0.02    0.03   0.000   0.2  
+dist2NearestPS          64,080 0.02    0.01   0.001   0.1  
+dist2NearestTransitStop 64,080 191.0  183.4    2.8  2,330.9
+-----------------------------------------------------------

@@ -68,8 +68,7 @@ Identifies potential areas for further model improvement
 
 ```{r setting up the packages}
 if (!require(pacman)){install.packages("pacman"); library(pacman)}
-p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr, ggcorrplot, readxl, data.table, tmap)
-
+p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr, ggcorrplot, readxl, data.table, caTools, tmap, stargazer, spdep, caret, ckanr, FNN, grid, gridExtra, jtools, broom, tufte, rmarkdown, brewer.pal, ggplot2)
 ```
 
 ```{r}
@@ -168,25 +167,6 @@ summary(seattleData)
 
 ```
 
-
-```{r corr int}
-int_variables <- c("price", "condition", "sqft_living", "yr_built", "bedrooms", "bathrooms", "sqft_basement", "sqft_lot")
-
-seattleDatacorr <- seattleData %>% 
-  st_drop_geometry() %>% 
-  select(all_of(int_variables)) %>% 
-  na.omit()
-
-corr <- cor(seattleDatacorr)
-rounded_corr <- round(corr, 1)
-ggcorrplot(rounded_corr,
-           type = "lower",
-           lab = TRUE,
-           lab_size = 5,
-           colors = c("#d7191c", "#ffffbf", "#2c7bb6"),
-           title = "Correlation Matrix of Housing Dataset",
-           ggtheme = theme_bw())
-```
 
 ```{r impute missing data}
 
@@ -293,15 +273,37 @@ y <- rsgeo::as_rsgeo(seattleSchools)
 
 ## Calculating distance
 seattleData$dist2NearestSchool <- rsgeo::distance_euclidean_pairwise(x, y[closestSchool])
-               
 
 #Police Stations
 kcPS <- read.csv("Police_Station_Locations_in_King_County___kcp_loc_point.csv")
-kcPS <- st_as_sf(seattlePS, coords = c("X", "Y"), crs = 4326) %>%
-  st_transform(st_crs(seattleData))
 
 seattlePS <- kcPS %>%
   filter(ZIPCODE %in% c("98101","98102","98103","98104","98105", "98106","98107", "98108","98109","98111","98112","98113",'98114","98115"."98116","98117","98118","98119","98120","98121","98122","98123","98124","98125","98126","98131","98132',"98133","98134","98135","98136","98138","98144","98145","98146","98148","98154","98155","98158","98160","98161","98164","98166","98168","98171","98174","98177","98178","98188","98198","98199"))
+
+kcPS <- st_as_sf(seattlePS, coords = c("X", "Y"), crs = 4326) %>%
+  st_transform(st_crs(seattleData))
+
+
+
+# Checking CRS of seattleData and seattlePS
+crs_seattleData <- st_crs(seattleData)
+crs_seattlePS <- st_crs(seattlePS)
+
+print(crs_seattleData)
+print(crs_seattlePS)
+
+# Checking class of the datasets and ensuring crs is same
+print(class(seattleData))
+print(class(seattlePS))
+
+if (!inherits(seattlePS, "sf")) {
+  seattlePS <- st_as_sf(seattlePS, coords = c("X", "Y"), crs = 4326)
+}
+
+# Transforming seattlePS to match the crs of seattleData
+if (!st_crs(seattleData) == st_crs(seattlePS)) {
+  seattlePS <- st_transform(seattlePS, st_crs(seattleData))
+}
 
 #mapping nearest police stations
 closestPS <- sf::st_nearest_feature(seattleData, seattlePS)
@@ -313,27 +315,29 @@ y <- rsgeo::as_rsgeo(seattlePS)
 #calculating distance
 seattleData$dist2NearestPS <- rsgeo::distance_euclidean_pairwise(x,y[closestPS])
 
-
 #Transit Stops
 kcTransitStops <- read.csv("Transit_Stops_for_King_County_Metro___transitstop_point.csv")
-kcTransitStops <- st_as_sf(seattleTransitStops, coords = c("X", "Y"), crs = 4326) %>%
-  st_transform(st_crs(seattleData))
 
 seattleTransitStops <- kcTransitStops %>%
   filter(ZIPCODE %in% c("98101","98102","98103","98104","98105", "98106","98107", "98108","98109","98111","98112","98113",'98114","98115"."98116","98117","98118","98119","98120","98121","98122","98123","98124","98125","98126","98131","98132',"98133","98134","98135","98136","98138","98144","98145","98146","98148","98154","98155","98158","98160","98161","98164","98166","98168","98171","98174","98177","98178","98188","98198","98199"))
 
+kcTransitStops <- st_as_sf(seattleTransitStops, coords = c("X", "Y"), crs = 4326) %>%
+  st_transform(st_crs(seattleData))
 
+kcTransitStops <- st_transform(kcTransitStops, st_crs(seattleData))
 
-#mapping nearest transit stop
-closestTransitStop <- sf::st_nearest_feature(seattleData, seattleTransitStops)
+closestTransitStop <- st_nearest_feature(seattleData, kcTransitStops)
 
-#converting into rsgeo geometries
-x <- rsgeo::as_rsgeo(seattleData)
-y <- rsgeo::as_rsgeo(seattleTransitStops)
+seattleData$dist2NearestTransitStop <- st_distance(seattleData, kcTransitStops[closestTransitStop,], by_element = TRUE)
 
-#calculating distance
-seattleData$dist2NearestTransitStop <- rsgeo::distance_euclidean_pairwise(x,y[closestTransitStop])
+# converting it to character
+seattleData$dist2NearestTransitStop <- as.character(seattleData$dist2NearestTransitStop)
 
+# removing '[m]' from the string
+seattleData$dist2NearestTransitStop <- sub("\\s\\[m\\]", "", seattleData$dist2NearestTransitStop)
+
+# converting the results back to numeric
+seattleData$dist2NearestTransitStop <- as.numeric(seattleData$dist2NearestTransitStop)
 
 
 ```
@@ -369,10 +373,6 @@ kcTracts_filtered <- kcTracts_filtered %>%
   rename(TRACT = GEOID) %>% # Rename GEOID to TRACT
   mutate(TRACT = str_sub(TRACT, -6)) # Keep the last 6 characters
 
-kcTractsSF <- st_as_sf()
-
-seattleTracts <- sf::st_join(seattleData, kcTracts_filtered, by = "TRACT") #trying to join it by tract only so we drop all the non-Seattle ones but it won't work dunno why
-  
 
 # Joining data from two datasets
 seattleData <- st_join(seattleData, kcTracts_filtered)
@@ -410,7 +410,7 @@ DemographicVariables <- st_drop_geometry(DemographicVariables)
 DemographicVariables <- DemographicVariables %>%
   dplyr::select("PctWhite", "PctBlack", "PctHispanic", "PctBachelors", "PctPoverty", "medIncome") 
 
-stargazer(as.data.frame(DemographicVariables), type="text", digits=1, title = "Descriptive Statistics for Seattle Homes Demographic Variables", out = "Training_PHLSpatial.txt")
+stargazer(as.data.frame(DemographicVariables), type="text", digits=1, title = "Descriptive Statistics for Seattle Homes Demographic Variables", out = "Training_seattleSpatial.txt")
 ```
 The table presents descriptive statistics for demographic variables related to Seattle homes, offering insights into the characteristics of the population in different areas.
 
@@ -428,7 +428,56 @@ SpatialVariables <- seattleData
 
 SpatialVariables <- st_drop_geometry(SpatialVariables)
 
+SpatialVariables <- SpatialVariables %>%
+  dplyr::select("dist2NearestSchool", "dist2NearestPS", "dist2NearestTransitStop") 
 
+stargazer(as.data.frame(SpatialVariables), type="text", digits=1, title = "Descriptive Statistics for Seattle Homes Spatial Variables (Figure 4.1)", out = "Training_seattleSpatial.txt")
+
+```
+These statistics offer insights into the spatial characteristics of Seattle neighborhoods where the "Mean" in each case represents the average distance to a specific amenity like police stations, schools and transit stops from a listed property. 
+
+# Scatterplots 
+
+The following code generates a set of scatterplots to explore the relationships between the sale price of homes and various continuous variables.  The data is first filtered to exclude observations where the sale_price is less than 5,000,000 to remove any outliers. For the remaining data, a set of scatterplots is created. The scatterplots help visualize the relationships between the sale price of homes and each of the continuous variables, as well as the direction and strength of these relationships. The regression lines indicate whether there is a linear trend in the data.
+
+```{r scatterplots, fig.align="center", warning=FALSE, echo = FALSE, fig.width = 14, fig.height=28 }
+options(scipen = 9999) #turns off scientific notation and how many points
+
+Variable <- seattleData %>%
+  filter(price < 5000000)
+
+## Scatterplot
+st_drop_geometry(Variable) %>% 
+  dplyr::select(price, sqft_living, yr_built, medIncome, PctWhite, PctBachelors, dist2NearestTransitStop) %>% 
+  filter(price < 5000000) %>%
+  gather(Variable, Value, -price) %>% 
+   ggplot(aes(Value, price)) +
+     geom_point(size = .5) + geom_smooth(method = "lm", se=F, colour = "#FA7800") +
+     facet_wrap(~Variable, ncol = 2, scales = "free") +
+     labs(title = "Price as a function of continuous variables") +
+     theme_minimal()
+```
+#Correlation Matrix
+
+The correlation matrix provides a numerical summary of how different variables in the housing dataset are related to one another. The correlation matrix indicates that home prices in the Seattle housing dataset are positively correlated with the size of the living area and the number of bathrooms, meaning larger homes and those with more bathrooms tend to be more expensive. There seems to be a slight negative correlation between the price of homes and the distance to the nearest public school and transit stop, implying that homes closer to schools and transit may command higher prices. The zeros in the correlation matrix highlight that there is no linear relationship between the home price and the year built or between the distances to nearest public school and transit stops, which stands out, suggesting that newer homes are not necessarily priced higher and that proximity to these amenities does not uniformly affect home values.
+
+```{r corr int}
+int_variables <- c("price", "condition", "sqft_living", "yr_built", "bedrooms", "bathrooms", "dist2NearestSchool", "dist2NearestPS", "dist2NearestTransitStop", "PctWhite", "PctBachelors", "medIncome")
+
+seattleDatacorr <- seattleData %>% 
+  st_drop_geometry() %>% 
+  select(all_of(int_variables)) %>% 
+  na.omit()
+
+corr <- cor(seattleDatacorr)
+rounded_corr <- round(corr, 1)
+ggcorrplot(rounded_corr,
+           type = "lower",
+           lab = TRUE,
+           lab_size = 2,
+           colors = c("#d7191c", "#ffffbf", "#2c7bb6"),
+           title = "Correlation Matrix of Housing Dataset",
+           ggtheme = theme_bw())
 ```
 
 #Exploratory Mapping and analysis
@@ -467,59 +516,70 @@ mapTheme <- function() {
     )
 }
 
+```
+
+#Mapping sale price
+
+```{r map int}
+
+# Creating quintiles from the price variable
+seattleData$priceQuintiles <- cut(seattleData$price, 
+                                  breaks = quantile(seattleData$price, probs = seq(0, 1, by = 0.2)), 
+                                  include.lowest = TRUE, 
+                                  labels = FALSE)
+
+# Converting the quintiles into a factor
+seattleData$priceQuintiles <- factor(seattleData$priceQuintiles)
+
 #palette
-palettee <- c('#d7191c', '#fdae61', '#ffffbf', '#abd9e9', '#2c7bb6')
-
-
-#mapping internal variables (condition, basement presence, house size, price)
+palette <- c('#d7191c', '#fdae61', '#ffffbf', '#abd9e9', '#2c7bb6')
 
 #mapping sale price
 ggplot() +
-  geom_sf(data= kcTracts, fill = "grey89", color = "darkgrey") +
-  geom_sf(data = seattleData, aes(colour = q5(price))) +
-  scale_fill_manual(values = c('red', 'orange', 'lightyellow', 'lightblue', 'skyblue3'),
-                      labels = qBr(seattleData, "price"),
-                      name = "Quintile Breaks :/n Sale Price",
-                      na.value = NA) +
-  labs(title = "Properties by Sale Price", subtitle = "Philadelphia 2022-23",
-       caption = "Figure 3.1.1") +
-  mapTheme()
+  geom_sf(data = kcTracts_filtered, fill = "grey89", color = "darkgrey") +
+  geom_sf(data = seattleData, aes(colour = priceQuintiles)) +  # Ensure q5(price) is a factor
+  scale_color_manual(values = palette,  # Use scale_color_manual to match the color aesthetic
+                     labels = qBr(seattleData, "price"),
+                     name = "Quintile Breaks:\nSale Price") +  # Correct label text
+  labs(title = "Properties by Sale Price", subtitle = "Seattle 2015") +
+  theme_void()
+```
+#Mapping independent variables
 
-#IT DOES NOT WORK AND I DO NOT KNOW WHY AND IM 99% SURE ITS A SMALL DUMB THING
+```{r map int}
 
+#palette
+palette <- c('#d7191c', '#fdae61', '#ffffbf', '#abd9e9', '#2c7bb6')
 
 #mapping interior condition - works
 
 ggplot()+
-  geom_sf(data = kcTracts, fill = "grey89", color = "darkgrey") +
+  geom_sf(data = kcTracts_filtered, fill = "grey89", color = "darkgrey") +
   geom_sf(data = seattleData, aes(colour =(conditionType)),
           show.legend = "point", size = .5) +
-  scale_colour_manual(values = palettee, name = "Condition Type") +
+  scale_colour_manual(values = palette, name = "Condition Type") +
   labs(title = "Properties by Condition Type", 
-       subtitle = "Seattle 2015",
-       caption = "Figure 3.1.3")+
+       subtitle = "Seattle 2015")+
   theme_void()  
 
 #mapping basement presence
 ggplot()+
-  geom_sf(data = kcTracts, fill = "grey89", color = "darkgrey") +
+  geom_sf(data = kcTracts_filtered, fill = "grey89", color = "darkgrey") +
   geom_sf(data = seattleData, aes(colour =(basementPresent)),
           show.legend = "point", size = .5) +
-  scale_colour_manual(values = palettee, name = "Basement Presence") +
+  scale_colour_manual(values = palette, name = "Basement Presence") +
   labs(title = "Properties by Basement Presence", 
-       subtitle = "Seattle 2015",
-       caption = "Figure 3.1.4")+
+       subtitle = "Seattle 2015")+
   theme_void()  
 
 #mapping house size 
 ggplot()+
-  geom_sf(data = kcTracts, fill = "grey89", color = "darkgrey") +
+  geom_sf(data = kcTracts_filtered, fill = "grey89", color = "darkgrey") +
   geom_sf(data = seattleData, aes(colour =(houseSize)),
           show.legend = "point", size = .5) +
-  scale_colour_manual(values = palettee, name = "House Size") +
+  scale_colour_manual(values = palette, name = "House Size") +
   labs(title = "Properties by Size", 
-       subtitle = "Seattle 2015",
-       caption = "Figure 3.1.5")+
+       subtitle = "Seattle 2015")+
   theme_void()  
 
 ```
@@ -528,66 +588,410 @@ ggplot()+
 #Mapping Spatial Variables
 
 #spatial variables are schools, police stations, and transit stops
-#can't do this until i can figure out why its not working
-#problem is in the Scale_colour_manual - can't figure out what the issue is though
 
-ggplot()+
-  geom_sf(data = kcTracts, fill ="grey89", color = "darkgrey") +
-  geom_sf(data = seattleData, aes(colour = q5(price)),
-          show.legend = "point", size = .75, alpha =0.3) +
-  geom_sf(data = seattleSchools, colour = "black", size = 1.5, alpha = 0.6) +
-  scale_colour_manual(values = palettee,
-                      labels = qBr(seattleData, "price"),
-                      name = "Quintile Breaks :/nSale Prices",
-                      na.value = NA) +
-  labs(title = "Properties Around Schools", 
-       subtitle = "Seattle 2015",
-       caption = "Figure 3.2.1") +
-  mapTheme()
+# Creating quintiles from the price variable
+seattleData$priceQuintiles <- cut(seattleData$price, 
+                                  breaks = quantile(seattleData$price, probs = seq(0, 1, by = 0.2)), 
+                                  include.lowest = TRUE, 
+                                  labels = FALSE)
 
+# Converting the quintiles into a factor
+seattleData$priceQuintiles <- factor(seattleData$priceQuintiles)
+
+# Palette
+palette <- c("#d7191c", "#fdae61", "#ffffbf", "#abdbe9", "#2c7bb6")
+
+# Plot
+ggplot() +
+  geom_sf(data = kcTracts_filtered, fill = "grey89", color = "darkgrey") +
+  geom_sf(data = seattleData, aes(colour = priceQuintiles), size = 0.75, alpha = 0.3) + 
+  scale_color_manual(values = palette, 
+                     labels = c("Quintile 1", "Quintile 2", "Quintile 3", "Quintile 4", "Quintile 5")) +
+  labs(title = "Properties around schools", subtitle = "Seattle 2015") +
+  theme_void()
 
 ```
 
 ```{r}
 #Mapping Demographic Variables
 
-#mapping median income around sold properties - are we doing sold properties??
-ggplot()+
-  geom_sf(data = kcTracts, fill = "grey89", color = "darkgrey") +
-  geom_sf(data = kcTracts, aes(fill = medIncome, color = "transparent", alpha = 0.5)+
-            scale_fill_brewer(palette = "BuPu",
-                              labels = qBr(kcTracts, "medIncome"),
-                              name = "Median Income in Quintile Breaks"))+
-  geom_sf(data = seattleData, aes(colour = price),
-          show.legend = "point", size = .2)+
-  scale_colour_manual(values = palettee,
-                      labels = qBr(seattleData, "price"),
-                      name = "Quintile Breaks in Sale Prices",
-                      na.value = NA) +
-  labs(title ="Median Income Around Sold Properties", 
-       subtitle = "Seattle 2015",
-       caption = "Figure 3.3.1") +
-  mapTheme()
+#palette
+palette <- c('#d7191c', '#fdae61', '#ffffbf', '#abd9e9', '#2c7bb6')
+
+#mapping median income around properties
+ggplot() +
+  geom_sf(data = kcTracts_filtered, fill = "grey89", color = "darkgrey") +  
+  geom_sf(data = kcTracts_filtered, aes(fill = medIncome), color = "transparent", alpha = 0.5) +  
+  scale_fill_gradientn(colors = palette) +
+  labs(title = "Median Income Around Properties",
+       subtitle = "Seattle 2015") +
+  theme_void()
+
+```
+#Regression Model
+
+## Testing and Training Data 
+
+We are splitting the modelling data into training and testing sets, ensuring that the data is split randomly each time.
+
+```{r train data}
+
+# Split the dataset into a training set and a test set using stratified sampling
+inTrain <- createDataPartition(
+              y = paste(seattleData$price, seattleData$pricePerFt2, seattleData$sqft_living, seattleData$condition, seattleData$bedrooms, seattleData$buildingAge, seattleData$dist2NearestPS, seattleData$dist2NearestSchool, seattleData$dist2NearestTransitStop, seattleData$medIncome, seattleData$PctWhite, seattleData$PctBlack, seattleData$PctHispanic, seattleData$PctPoverty, seattleData$PctBachelors), 
+              p = .70, list = FALSE)  # Create a vector of indices for the training set, taking 70% of observations in the training dataset
+
+# Subset the dataset to create the training set
+seattle.training <- seattleData[inTrain,]  # Training set
+# Subset the dataset to create the test set
+seattle.test <- seattleData[-inTrain,]     # Test set
+
+# Fitting a linear regression model to predict Sale Price using selected predictors
+reg.training <- 
+  lm(price ~ ., data = as.data.frame(seattle.training) %>% 
+                             dplyr::select(price, pricePerFt2, sqft_living, condition, 
+                                           bedrooms, buildingAge, dist2NearestPS, dist2NearestSchool, dist2NearestTransitStop, 
+                                           medIncome, PctWhite, PctBlack, PctHispanic, PctPoverty, PctBachelors)) 
+summary(reg.training)
+
+## Plot regression 
+#effect_plot(reg2, pred = number_of_bathrooms, interval = TRUE, plot.points = TRUE)
+plot_summs(reg.training, scale = TRUE)
+
+# Make predictions on the test set and evaluate model performance
+seattle.test <-
+  seattle.test %>%  # Pipe the test set into the following operations
+  # Add a column indicating the type of regression model used
+  mutate(Regression = "Baseline Regression",
+         # Predict sale prices using the trained regression model
+         SalePrice.Predict = predict(reg.training, seattle.test),
+         # Calculate the difference between predicted and actual sale prices
+         SalePrice.Error = SalePrice.Predict - price,
+         # Calculate the absolute difference between predicted and actual sale prices
+         SalePrice.AbsError = abs(SalePrice.Predict - price),
+         # Calculate the absolute percentage error
+         SalePrice.APE = (abs(SalePrice.Predict - price)) / price) %>%
+  filter(price < 5000000)  # Filter out records with price greater than $5,000,000
+
+```
+The mean absolute error (MAE) for our model is currently approximately `$64,798`, and the Mean Absolute Percentage Error (MAPE) stands at around 17%. We experimented with various variable combinations to reduce these metrics, and we managed to achieve results close to the range of $50,000 to $100,000 (with a MAPE of 17%) by incorporating variables like "pricePerFt2". Variables like price per square foot (pricePerFt2) and educational attainment (PctBachelors) are significant predictors, implying a strong relationship between these factors and housing prices.
+
+```{r}
+mean(seattle.test$SalePrice.AbsError, na.rm = T) #MAE is the mean absolute error
+mean(seattle.test$SalePrice.APE, na.rm = T)
+```
+#Cross validation
+
+We used 100 folds for cross-validation. The model shows strong predictive power with an R-squared of 0.9, indicating that 90% of the variability in the housing prices can be explained by the model's predictors. However, there is notable variation in the model's performance across different cross-validation folds, as seen by the std deviation and average values in RMSE and MAE. The RMSE averages at 112,359.1, which, alongside an average MAE of 66,010.9, suggests that while the model generally captures the trend, individual predictions can be off, highlighting room for improvement in model accuracy.
+
+```{r crossvalidation}
+
+seattle.test <-
+  seattle.test %>%
+  filter(price < 5000000)
+
+# Set up cross-validation for model evaluation
+fitControl <- trainControl(method = "cv", number = 100)
+
+# Set the seed for reproducibility
+set.seed(825) #seed makes sure that you get random numbers, so you do not get very different answers every time. This is done to make sure analysis is robust.
+
+# Train a linear regression model using cross-validation
+reg.cv <- 
+  train(price ~ ., 
+        data = st_drop_geometry(seattleData) %>% 
+               dplyr::select(price, pricePerFt2, sqft_living, condition, 
+                                           bedrooms, buildingAge, dist2NearestPS, dist2NearestSchool, dist2NearestTransitStop, 
+                                           medIncome, PctWhite, PctBlack, PctHispanic, PctPoverty, PctBachelors), 
+        method = "lm",  # Specify the modeling method as linear regression
+        trControl = fitControl,  # Specify the cross-validation settings
+        na.action = na.pass)  # Specify how to handle missing values
+
+stargazer(as.data.frame(reg.cv$resample), type="text", digits=1, title="Cross Validation Results", out = "CV.txt") #all cv
+
+# View the results of the cross-validated linear regression model
+reg.cv
+
+```
+Most of our MAE seem to be within the $57,000 to $80,000 range (with a mean of $66,000) which is illustrated in the following histogram.  
+
+```{r}
+#plotting the cross validation stuff
+
+ggplot(reg.cv$resample, aes(x=MAE)) +
+  geom_histogram(fill = "#2c7bb6") +
+  labs(title = "Cross Validation Tests in Mean Average Error") +
+  theme_minimal()
+
+```
+The histogram visualizes the distribution of the Mean Absolute Error (MAE) from cross-validation tests of the regression model. The majority of the MAE values cluster around the 65000 to 70000 range, indicating that the model's prediction errors typically fall within this band. Fewer instances of the model exhibit significantly higher errors, with some outliers around 75000.
+
+```{r}
+
+seattle.test %>%
+  dplyr::select(SalePrice.Predict, price) %>%
+    ggplot(aes(price, SalePrice.Predict)) +
+  geom_point() +
+  stat_smooth(aes(price, price), 
+             method = "lm", se = FALSE, size = 1, colour="#d7191c") + 
+  stat_smooth(aes(SalePrice.Predict, price), 
+              method = "lm", se = FALSE, size = 1, colour="#2c7bb6") +
+  labs(title="Predicted Sale Price as a Function of Observed Price",
+       subtitle="Red line represents a perfect prediction; Blue line represents prediction",
+       x = "Observed Price",
+       y = "Predicted Price") +
+  theme_minimal()+ xlim(0, 2000000) + ylim(0, 2000000)
+```
+
+The blue line, representing the model’s predictions, closely follows the red line, indicating that the model is performing well for many of the data points, particularly at lower price ranges. However, as the observed price increases, the predictions tend to deviate from the perfect line, showing some underestimation or overestimation by the model. The clustering of points along the blue line also suggests greater variability in predictions as the house price increases, which could be due to factors not captured by the model or the impact of higher-value outliers.
+
+# Spatial Correlations 
+
+```{r}
+
+#use the same thing for weights and morans i 
+
+# Spatial Lag for price
+# Extract the coordinates from the 'seattleData' spatial dataframe
+coords <- st_coordinates(seattleData) 
+neighborList <- knn2nb(knearneigh(coords, 5))
+spatialWeights <- nb2listw(neighborList, style="W")
+seattleData$lagPrice <- lag.listw(spatialWeights, seattleData$price)
+
+# Extract the coordinates of the test dataset
+coords.test <- st_coordinates(seattle.test) #calculating spatial lag of errors to see if our model is misspecified
+
+# Create a neighbor list using k-nearest neighbors (KNN) with k=5 for the test dataset
+neighborList.test <- knn2nb(knearneigh(coords.test, 5))
+# Convert the neighbor list to a spatial weights matrix for the test dataset
+spatialWeights.test <- nb2listw(neighborList.test, style="W")
+
+seattle.test$lagPrice <- lag.listw(spatialWeights.test, seattle.test$price)
+
+seattle.test$lagPriceError <- lag.listw(spatialWeights.test, seattle.test$SalePrice.Error, NAOK = TRUE)
+
+# Filtering greater than 0 values
+
+seattle.test_filter <- seattle.test %>%
+  filter(SalePrice.Error > 0, lagPriceError > 0)
+
+ggplot(data = seattle.test_filter, aes(lagPriceError, SalePrice.Error)) +
+  geom_point(size = .85,colour = "black") + 
+  geom_smooth(method = "lm",colour = "red",size = 1.2) +
+  labs(title="Price Errors") +
+  theme_minimal()
 
 
-#mapping pct poverty around sold properties
-ggplot()+
-  geom_sf(data = kcTracts, fill = "grey89", color = "darkgrey") +
-  geom_sf(data = kcTracts, aes(fill = pctPoverty, color = "transparent", alpha = 0.5)+
-            scale_fill_brewer(palette = "BuPu",
-                              labels = qBr(kcTracts, "medIncome"),
-                              name = "Median Income in Quintile Breaks"))+
-  geom_sf(data = seattleData, aes(colour = price),
-          show.legend = "point", size = .2)+
-  scale_colour_manual(values = palettee,
-                      labels = qBr(seattleData, "price"),
-                      name = "Quintile Breaks in Sale Prices",
-                      na.value = NA) +
-  labs(title ="Median Income Around Sold Properties", 
-       subtitle = "Seattle 2015",
-       caption = "Figure 3.3.1") +
-  mapTheme()
+```
+
+## Moran's I 
+
+Moran's I is a measure of spatial autocorrelation, meaning it tells us whether the pattern of a certain variable (like housing prices) is random or clustered across a geographic area. This suggests that there is no significant clustering of errors, a pattern that is also evident in the map. Consequently, it is probable that errors in our model may stem from other demographic or internal variables that we may not have accounted for. To improve the accuracy of our analysis, further investigation and inclusion of these potentially omitted variables might be necessary.
+
+```{r}
+
+# for morans 1
+
+# Spatial Lag for price
+coords <- st_coordinates(seattle.test_filter) 
+neighborList <- knn2nb(knearneigh(coords, 5))
+spatialWeights <- nb2listw(neighborList, style="W")
+seattle.test_filter$lagPrice <- lag.listw(spatialWeights, seattle.test_filter$price)
+
+seattle.test_filter$lagPriceError <- lag.listw(spatialWeights, seattle.test_filter$SalePrice.Error, NAOK = TRUE)
+
+
+
+moranTest <- moran.mc(na.omit(seattle.test_filter$SalePrice.Error),
+                      spatialWeights, nsim = 999)  
+
+ggplot(as.data.frame(moranTest$res[c(1:999)]), aes(moranTest$res[c(1:999)])) +
+  geom_histogram(binwidth = 0.005) +
+  geom_vline(aes(xintercept = moranTest$statistic), colour = "#d7191c",size=1) +
+  scale_x_continuous(limits = c(-0.5,0.5)) +
+  labs(title="Observed and permuted Moran's I",
+       subtitle= "Observed Moran's I in red",
+       x="Moran's I",
+       y="Count") +
+  theme_minimal()
+```
+
+The histogram shows the expected distribution of Moran's I if there was no spatial autocorrelation, based on random permutations. The red line stands out on the right, suggesting the observed Moran's I is significantly higher than what would be expected if there were no spatial pattern. This means that the variable being analyzed is not randomly distributed but, instead, is spatially clustered—neighboring areas are likely to have similar values.
+
+## Predictions by neighborhoods (using census tracts)
+
+To assess how errors are distributed by neighborhoods (in this case, census tracts)
+
+```{r predictbytracts}
+
+# Convert the 'seattle.test' dataset to a regular data frame
+seattle.test %>%
+  as.data.frame() %>%
+
+  # Group the data frame by the 'TRACT.x' variable
+  group_by(TRACT.x) %>%
+  
+  # Calculate the mean of 'SalePrice.Predict' and 'SalePrice' variables within each group
+  summarize(meanPrediction = mean(SalePrice.Predict),
+            meanPrice = mean(price)) %>%
+  
+  # Format the summarized data frame as an HTML table
+  kable() %>%
+  
+  # Apply styling to enhance the appearance of the HTML table
+  kable_styling()
+
+
+```
+
+The table shows that the model's predictions for housing prices by census tract are reasonably close to the actual mean prices, suggesting a good model fit for the tracts.
+
+```{r}
+
+# Creating quintiles from the price variable
+seattleData$priceQuintiles <- cut(seattleData$price, 
+                                  breaks = quantile(seattleData$price, probs = seq(0, 1, by = 0.2)), 
+                                  include.lowest = TRUE, 
+                                  labels = FALSE)
+
+# Converting the quintiles into a factor
+seattleData$priceQuintiles <- factor(seattleData$priceQuintiles)
+
+# Assuming SalePrice.AbsError is a numeric vector of absolute errors
+seattle.test$color_factor <- cut(
+  seattle.test$SalePrice.AbsError,
+  breaks = quantile(seattle.test$SalePrice.AbsError, probs = 0:5/5, na.rm = TRUE),
+  include.lowest = TRUE,
+  labels = FALSE
+)
+
+
+```
+
+```{r}
+# Calculate quintiles for Price.AbsError and create a factor variable for coloring
+quintiles <- quantile(seattle.test$SalePrice.AbsError, probs = seq(0, 1, by = 0.2), na.rm = TRUE)
+seattle.test$PriceQuintiles <- cut(seattle.test$SalePrice.AbsError, breaks = quintiles, labels = 1:5, include.lowest = TRUE,
+                                   )
+
+# Define your color palette
+palette <- c("#d7191c", "#fdae61", "#ffffbf", "#abd9e9", "#2c7bb6")
+
+# Plot the map with the categorized Price.AbsError
+ggplot() +
+  geom_sf(data = kcTracts_filtered, fill = "grey89") +
+  geom_sf(data = seattle.test, aes(colour = PriceQuintiles), show.legend = "point", size = .75) +
+  scale_colour_manual(values = palette, name="Quintile Breaks") +
+  labs(
+    title = "Map of Price Absolute Errors for Test Set",
+    subtitle = "Seattle"
+  ) +
+  theme_void()
 ```
 
 
+```{r}
+
+seattle.test$PriceQuintiles <- cut(
+  seattle.test$SalePrice.AbsError,
+  breaks = quantile(seattle.test$SalePrice.AbsError, probs = seq(0, 1, by = 0.2), na.rm = TRUE),
+  include.lowest = TRUE,
+  labels = c("1st Quintile", "2nd Quintile", "3rd Quintile", "4th Quintile", "5th Quintile")
+)
+
+# Define your palette (ensure it has 5 colors for the 5 quintiles)
+palette <- c("#d7191c", "#fdae61", "#ffffbf", "#abd9e9", "#2c7bb6")
+
+ggplot() +
+  geom_sf(data = kcTracts_filtered, fill = "grey89") +
+  geom_sf(data = seattle.test, aes(color = PriceQuintiles), size = 0.75) +
+  scale_color_manual(values = palette, name="Price Quintiles") +
+  labs(
+    title = "Predicted Sale Price for Test Set",
+    subtitle = "Seattle"
+  ) +
+  theme_void()
+
+```
+## Regression with neighborhood effects
+
+Let's try to run the regression again, but this time with a neighborhood fixed effect. We do this by simply adding the variable 'TRACT.x' which is the census tract to the regression model as a neighborhood-level dummy variable.
+
+```{r}
+# This code fits a linear regression model ('reg.nhood') to predict 'SalePrice' using various predictors, including neighborhood-related variables, using the training dataset.
+
+# Fit a linear regression model to the training dataset ('boston.training') 
+reg.nhood <- lm(price ~ ., #adding dummy variable for name
+                data = as.data.frame(seattle.training) %>% 
+                         dplyr::select(TRACT.x, price, pricePerFt2, sqft_living, condition, 
+                                           bedrooms, buildingAge, dist2NearestPS, dist2NearestSchool, dist2NearestTransitStop,
+                                           medIncome, PctWhite, PctBlack, PctHispanic, PctPoverty, PctBachelors))
+#View the model stats
+summary(reg.nhood)
+#r squared went up to 92% when neighbourhood was taken into consideration
+
+# Create a new dataset ('seattle.test.nhood') by predicting 'price' for the test dataset ('seattle.test') using the neighborhood effects model ('reg.nhood')
+seattle.test.nhood <- #doing exactly the same thing, but for this new model now
+  seattle.test %>%
+  mutate(Regression = "Neighborhood Effects",  # Add a new variable indicating the type of regression model
+         SalePrice.Predict = predict(reg.nhood, seattle.test),  # Predict 'SalePrice' using the fitted model
+         SalePrice.Error = SalePrice.Predict - price,  # Calculate the error between predicted and actual 'SalePrice'
+         SalePrice.AbsError = abs(SalePrice.Predict - price),  # Calculate the absolute error
+         SalePrice.APE = (abs(SalePrice.Predict - price)) / price) %>%  # Calculate the absolute percentage error
+  filter(price < 5000000)  # Filter out observations with 'SalePrice' greater than $5,000,000
+
+
+```
+#Calculating residuals
+
+```{r residual}
+
+coords <- st_coordinates(seattleData) 
+neighborList <- knn2nb(knearneigh(coords, 5))
+spatialWeights <- nb2listw(neighborList, style="W")
+seattleData$lagPrice <- lag.listw(spatialWeights, seattleData$price)
+
+# Extract the coordinates of the test dataset
+coords.test <- st_coordinates(seattle.test) #calculating spatial lag of errors to see if our model is misspecified
+
+# Create a neighbor list using k-nearest neighbors (KNN) with k=5 for the test dataset
+neighborList.test <- knn2nb(knearneigh(coords.test, 5))
+# Convert the neighbor list to a spatial weights matrix for the test dataset
+spatialWeights.test <- nb2listw(neighborList.test, style="W")
+
+seattle.test$lagPrice <- lag.listw(spatialWeights.test, seattle.test$price)
+
+seattle.test$lagPriceError <- lag.listw(spatialWeights.test, seattle.test$SalePrice.Error, NAOK = TRUE)
+
+seattle.test <- seattle.test %>%
+  mutate(Residual = price - SalePrice.Predict) %>%
+  group_by(TRACT.x) %>%
+  summarise(AvgResidual = mean(Residual, na.rm = TRUE))
+
+# Ensure that kcTracts_filtered is an sf object and has the correct CRS
+kcTracts_filtered <- st_as_sf(kcTracts_filtered)
+kcTracts_filtered <- st_set_crs(kcTracts_filtered, st_crs(seattle.test))
+
+# Perform the spatial join
+seattle_residuals <- st_join(seattle.test, kcTracts_filtered)
+
+seattle_residuals <- merge(seattle.test, kcTracts_filtered, by.x = "TRACT.x", by.y = "TRACT")
+
+# Create the color palette for the gradient
+color_palette <- colorRampPalette(colors = c("#d7191c", "#fdae61", "#ffffbf", "#abd9e9", "#2c7bb6"))
+
+# Generate a sequence of colors from the palette
+palette <- color_palette(100)  # This will create a smooth gradient with 100 colors
+
+# Plot the kcTracts_filtered as the base layer in grey
+ggplot() +
+  geom_sf(data = kcTracts_filtered, fill = "grey89") +  # Base layer
+  geom_sf(data = seattle_residuals, aes(fill = AvgResidual), size = 0.5) +  # Residuals layer
+  scale_fill_gradientn(colors = palette) +  # Gradient scale for residuals
+  labs(title = "Average Residuals by Census Tracts", fill = "Avg Residual") +
+  theme_void()
+
+```
+
+# Conclusion 
 
