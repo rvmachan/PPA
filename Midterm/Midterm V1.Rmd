@@ -4,19 +4,11 @@ author: "Kamya Khandelwal, Revathi Machan"
 date: "`r Sys.Date()`"
 output:
   html_document:
-    keep_md: true
     toc: true
-    theme: flatly
-    toc_float:
-      collapsed: false
-      smooth_scroll: true
+    toc_float: true
     code_folding: hide
-    fontsize: 11pt
-  pdf_document:
-    toc: true
-editor_options:
-  markdown:
-    wrap: 72
+    code_download: true
+    theme: journal  
 ---
 
 #Setting up 
@@ -55,7 +47,7 @@ if (!require(pacman)){install.packages("pacman"); library(pacman)}
 p_load (sf, tidyverse, knitr, kableExtra, rmarkdown, tidycensus, dplyr, scales, stringr, ggcorrplot, readxl, data.table, caTools, tmap, stargazer, spdep, caret, ckanr, FNN, grid, gridExtra, jtools, broom, tufte, rmarkdown, brewer.pal, ggplot2)
 ```
 
-```{r}
+```{r api}
 census_api_key("b3eda1fa84dde3c5ad443fd407d48f2584ab2726", overwrite = TRUE)
 ```
 
@@ -67,7 +59,7 @@ Census, OpenData Seattle and provided Dataset
 
 The code below is used to import the foundational dataset for our model. This dataset contains information on home sales prices and property characteristics in Seattle, Kings County for the years 2014 and 2015. The model we are developing is designed to make predictions about home prices and utilizes specific property attributes from this dataset to enhance the accuracy of those predictions.
 
-```{r Reading Data, results= 'hide'}
+```{r Reading Data 1, results= 'hide'}
 
 kingsCounty <- read.csv("kc_house_data.csv")
 kingsCoSF <- st_as_sf(kingsCounty, coords = c("long", "lat"), crs = 4326)
@@ -80,7 +72,7 @@ print(crs)
 ```
 Getting census tracts data from HUD USPS Crosswalk files to assign census tracts to the original data.
 
-```{r Reading Data, results= 'hide'}
+```{r Reading Data 2, results= 'hide'}
 
 #Data from HUD USPS Zipcode Crosswalk files
 hud_data <- read_excel("ZIP_TRACT_032015.xlsx")
@@ -95,7 +87,7 @@ desired_zips <- c("98101", "98102", "98103", "98104", "98105", "98106", "98107",
 
 ```
 
-```{r}
+```{r filtering data}
 #filtering out data that's not Seattle
 
 seattleData <- kingsCoSF %>%
@@ -180,11 +172,11 @@ seattleData <- seattleData %>%
   mutate(buildingAge = (2015 -(yr_built)))
 ```
 
-###Census Data Collection
+## Census Data Collection
 
 The census information from 2021 offers a detailed look at the community and housing in King County, including stuff like how many people live there, what types of homes they have, and income levels. To use this data with housing prices from 2015, we need to remember that things might have changed over those six years, which could affect the home prices in Seattle.
 
-```{r}
+```{r census data}
 acsVariables2015 <- load_variables(2015, "acs5", cache = TRUE)
 
 # 2021, A
@@ -242,7 +234,7 @@ kcTracts <- kcTracts %>% st_transform(st_crs(seattleData)) #need to add projecti
 
 ```
 
-```{r}
+```{r spatial variables}
 seattleSchools <- read.csv("Seattle_Public_Schools_Sites_2023-2024.csv")
 seattleSchools <- st_as_sf(seattleSchools, coords = c("Longitude", "Latitude"), crs = 4326) %>%
   st_transform(st_crs(seattleData))
@@ -325,8 +317,6 @@ seattleData$dist2NearestTransitStop <- as.numeric(seattleData$dist2NearestTransi
 
 ```
 
-
-
 ```{r pop, warning=FALSE, results='hide'}
 
 kcTracts <- kcTracts %>%
@@ -361,7 +351,7 @@ kcTracts_filtered <- kcTracts_filtered %>%
 seattleData <- st_join(seattleData, kcTracts_filtered)
 ```
 
-#Summary Statistics
+# Summary Statistics
 
 Summary statistics provide a quick snapshot of key attributes of your dataset, such as the average values, variability, and distribution across different variables, which can indicate trends and outliers in your data. They're essential for understanding the general behavior of the dataset before diving into deeper analysis.
 
@@ -403,7 +393,7 @@ On average, approximately 63.6% of the population in the observed areas is White
 
 The average median household income in the observed areas is $108,185.2 with approximately 8.4% of the population in the observed areas falls below the poverty level, on average.
 
-##Summary Statistics: Spatial Variables
+## Summary Statistics: Spatial Variables
 
 These statistics provide an overview of the central tendency, spread, and range of the internal variables for Seattle homes, which include distances to key nearest amenities.
 
@@ -445,11 +435,11 @@ st_drop_geometry(Variable) %>%
 
 The scatterplots illustrate that in Seattle, home prices have a positive relationship with square footage and percentage of residents with a bachelor's degree, suggesting larger homes and more educated neighborhoods tend to have higher property values. Conversely, there's no clear pattern with the age of the house, indicating that newer does not necessarily mean more expensive in this market.
 
-#Correlation Matrix
+# Correlation Matrix
 
 The correlation matrix provides a numerical summary of how different variables in the housing dataset are related to one another. The correlation matrix indicates that home prices in the Seattle housing dataset are positively correlated with the size of the living area and the number of bathrooms, meaning larger homes and those with more bathrooms tend to be more expensive. There seems to be a slight negative correlation between the price of homes and the distance to the nearest public school and transit stop, implying that homes closer to schools may command higher prices. The zeros in the correlation matrix highlight that there is no linear relationship between the home price and the year built or between the distances to nearest public school and transit stops, which stands out, suggesting that newer homes are not necessarily priced higher and that proximity to these amenities does not uniformly affect home values.
 
-```{r corr int}
+```{r corr}
 int_variables <- c("price", "condition", "sqft_living", "yr_built", "bedrooms", "bathrooms", "dist2NearestSchool", "dist2NearestPS", "dist2NearestTransitStop", "PctWhite", "PctBachelors", "medIncome")
 
 seattleDatacorr <- seattleData %>% 
@@ -468,9 +458,9 @@ ggcorrplot(rounded_corr,
            ggtheme = theme_bw())
 ```
 
-#Exploratory Mapping and analysis
+# Exploratory Mapping and analysis
 
-```{r}
+```{r mapping}
 
 #making a function for the quintile breaks
 qBr <- function(data, var_name) {
@@ -507,9 +497,9 @@ mapTheme <- function() {
 
 ```
 
-#Mapping sale price
+## Mapping sale price
 
-```{r map int}
+```{r map int sp}
 
 # Creating quintiles from the price variable
 seattleData$priceQuintiles <- cut(seattleData$price, 
@@ -535,7 +525,7 @@ ggplot() +
 ```
 The map shows the distribution of property sale prices across Seattle in 2015, with areas color-coded by quintile to indicate the range of sale prices. Red indicates the lowest price quintile while blue represents the highest, illustrating the spatial patterns of housing affordability or value within the city. This could reflect various socioeconomic factors, urban development patterns, and housing demand in different neighborhoods.
 
-#Mapping internal variables
+## Mapping internal variables
 
 The maps visualize the spatial distribution of basements, property conditions and property size across Seattle's residential properties in 2015. 
 
@@ -576,11 +566,11 @@ ggplot()+
   theme_void()  
 
 ```
-#Mapping Spatial Variables
+## Mapping Spatial Variables
 
 The map illustrates the distribution of properties around schools in Seattle for the year 2015, segmented into quintiles. Areas with a high concentration of properties in the top quintiles (red and orange) suggest neighborhoods with higher property values near schools, potentially indicating a desirability for educational proximity.
 
-```{r}
+```{r map spat var}
 
 #spatial variables are schools, police stations, and transit stops
 
@@ -606,11 +596,11 @@ ggplot() +
   theme_void()
 
 ```
-#Mapping Demographic Variables
+## Mapping Demographic Variables
 
 This map represents the distribution of median household income around properties in Seattle for the year 2015. The color gradation reflects varying income levels, with darker shades indicating higher income brackets. Areas shaded in darker blue, for instance, suggest higher median incomes, which may correlate with more expensive properties or affluent neighborhoods. 
 
-```{r}
+```{r map dem var}
 
 #palette
 palette <- c('#d7191c', '#fdae61', '#ffffbf', '#abd9e9', '#2c7bb6')
@@ -625,7 +615,7 @@ ggplot() +
   theme_void()
 
 ```
-#Regression Model
+# Regression Model
 
 Regression models are statistical methods used to predict the value of a dependent variable based on one or more independent variables, with training models built on known data for learning and test models applied to evaluate the prediction accuracy on unseen data.
 
@@ -675,12 +665,12 @@ seattle.test <-
 ```
 The mean absolute error (MAE) for our model is currently approximately `$64,798`, and the Mean Absolute Percentage Error (MAPE) stands at around 17%. We experimented with various variable combinations to reduce these metrics, and we managed to achieve results close to the range of $50,000 to $100,000 (with a MAPE of 17%) by incorporating variables like "pricePerFt2". Variables like price per square foot (pricePerFt2) and educational attainment (PctBachelors) are significant predictors, implying a strong relationship between these factors and housing prices.
 
-```{r}
+```{r mean}
 mean(seattle.test$SalePrice.AbsError, na.rm = T) #MAE is the mean absolute error
 mean(seattle.test$SalePrice.APE, na.rm = T)
 ```
 
-#Cross validation
+# Cross validation
 
 We used 100 folds for cross-validation. The model shows strong predictive power with an R-squared of 0.9, indicating that 90% of the variability in the housing prices can be explained by the model's predictors. However, there is notable variation in the model's performance across different cross-validation folds, as seen by the std deviation and average values in RMSE and MAE. The range of Mean Absolute Error (MAE) from around 57,980 to 78,327 highlights variability in prediction accuracy, which suggests that while the model explains much of the variance, its predictive performance could be inconsistent across different data samples. The Root Mean Square Error (RMSE) provides a sense of the magnitude of prediction errors. With an average RMSE of 112,359.1, the model's predictions deviate from the actual values by this amount on average. The model may be effective for the dataset used, given the high R-squared value, but the RMSE suggests that the actual prediction errors could be substantial, affecting the model's practical application in predicting housing prices.
 
@@ -715,7 +705,7 @@ reg.cv
 ```
 Most of our MAE seem to be within the $57,000 to $80,000 range (with a mean of $66,000) which is illustrated in the following histogram.  
 
-```{r}
+```{r plot cv}
 #plotting the cross validation stuff
 
 ggplot(reg.cv$resample, aes(x=MAE)) +
@@ -726,7 +716,7 @@ ggplot(reg.cv$resample, aes(x=MAE)) +
 ```
 The histogram visualizes the distribution of the Mean Absolute Error (MAE) from cross-validation tests of the regression model. The majority of the MAE values cluster around the 65000 to 70000 range, indicating that the model's prediction errors typically fall within this band. Fewer instances of the model exhibit significantly higher errors, with some outliers around 75000.
 
-```{r}
+```{r predict sp}
 
 seattle.test %>%
   dplyr::select(SalePrice.Predict, price) %>%
@@ -749,7 +739,7 @@ The blue line, representing the model’s predictions, closely follows the red l
 
 In spatial correlation analysis, filtering for values greater than 0 can focus on areas where the prediction error indicates a consistent underestimation of property values, which might reveal spatial patterns or trends. This can help identify specific regions where the model’s performance is lacking due to possible local factors or spatial dependencies not captured in the model.
 
-```{r}
+```{r spat correlation}
 
 #use the same thing for weights and morans i 
 
@@ -791,7 +781,7 @@ The graph suggests that there is a positive relationship between sale price erro
 
 Moran's I is a measure of spatial autocorrelation, meaning it tells us whether the pattern of a certain variable (like housing prices) is random or clustered across a geographic area. This suggests that there is no significant clustering of errors, a pattern that is also evident in the map. Consequently, it is probable that errors in our model may stem from other demographic or internal variables that we may not have accounted for. To improve the accuracy of our analysis, further investigation and inclusion of these potentially omitted variables might be necessary.
 
-```{r}
+```{r morans i}
 
 # for morans 1
 
@@ -852,7 +842,7 @@ The table shows that the model's predictions for housing prices by census tract 
 
 Let's try to run the regression again, but this time with a neighborhood fixed effect. We do this by simply adding the variable 'TRACT.x' which is the census tract to the regression model as a neighborhood-level dummy variable.
 
-```{r}
+```{r nbd}
 # This code fits a linear regression model ('reg.nhood') to predict 'SalePrice' using various predictors, including neighborhood-related variables, using the training dataset.
 
 # Fit a linear regression model to the training dataset ('boston.training') 
@@ -878,7 +868,7 @@ seattle.test.nhood <- #doing exactly the same thing, but for this new model now
 ```
 The regression with neighborhood effects demonstrates that accounting for neighborhood-level characteristics can impact the model's predictive power, as indicated by the high R-squared value.
 
-#Calculating residuals
+# Residuals
 
 The map aims to depict average residuals by census tracts to assess the model's prediction errors across different areas of Seattle. However, due to a visualization issue, the map currently shows all areas as black, indicating a problem with the scaling or classification of the residuals into different color ranges,which we were not able to resolve, thus preventing us from drawing any accurate inferences about the spatial distribution of residuals.
 
