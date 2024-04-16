@@ -57,14 +57,12 @@ These data come from a [Kaggle ML example data set](%22https://www.kaggle.com/fa
 ```{r load_packages, warning = FALSE}
 options(scipen=10000000)
 
-library(tidyverse)
-library(kableExtra)
-library(caret)
-library(knitr) 
-library(pscl)
-library(plotROC)
-library(pROC)
-library(lubridate)
+
+if(!require(pacman)){install.packages("pacman"); library(pacman)}
+p_load(tidyverse, kableExtra, caret, knitr, pscl, plotROC, pROC, lubridate, sf, tidycensus, RSocrata, viridis, spatstat, raster, spdep, FNN, grid, gridExtra, classInt)
+
+root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
+source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
 ```
 
 ```{r load_data, cache = TRUE}
