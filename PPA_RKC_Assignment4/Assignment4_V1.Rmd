@@ -70,8 +70,43 @@ palette5 <- c("#981FAC","#CB0F8B","#FF006A","#FE4C35","#FE9900")
 palette4 <- c("#981FAC","#FF006A","#FE4C35","#FE9900")
 palette2 <- c("#981FAC","#FF006A")
 
+policeDistricts <- 
+  st_read("https://data.cityofchicago.org/api/geospatial/fthy-xz3r?method=export&format=GeoJSON") %>%
+  st_transform('ESRI:102271') %>%  
+  dplyr::select(District = dist_num)  
 
-advertising <- read.csv("advertising_clean.csv")
+# Read and process police beats data
+policeBeats <- 
+  st_read("https://data.cityofchicago.org/api/geospatial/aerh-rz74?method=export&format=GeoJSON") %>%
+  st_transform('ESRI:102271') %>%  
+  dplyr::select(District = beat_num)  
+
+# Combine police districts and beats data into one dataframe
+bothPoliceUnits <- rbind(
+  mutate(policeDistricts, Legend = "Police Districts"), 
+  mutate(policeBeats, Legend = "Police Beats")  
+)
+
+#Read and process deceptive practice data
+deceptivePractice <- 
+  read.socrata("https://data.cityofchicago.org/Public-Safety/Crimes-2017/d62x-nvdr") %>% 
+  filter(Primary.Type == "DECEPTIVE PRACTICE") %>%  
+  mutate(x = gsub("[()]", "", Location)) %>%  
+  separate(x, into = c("Y", "X"), sep = ",") %>%  
+  mutate(X = as.numeric(X), Y = as.numeric(Y)) %>%  
+  na.omit() %>%  
+  st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%  
+  st_transform('ESRI:102271') %>% 
+  distinct()  
+
+# Read and process Chicago boundary data
+chicagoBoundary <- 
+  st_read(file.path(root.dir, "/Chapter5/chicagoBoundary.geojson")) %>%  
+  st_transform('ESRI:102271') 
+
+
+rDivism <-
+  read_csv("https://data.ojp.usdoj.gov/resource/ynf5-u8nk.csv")
 
 ```
 
