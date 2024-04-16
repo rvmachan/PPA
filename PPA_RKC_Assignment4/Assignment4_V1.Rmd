@@ -1,6 +1,6 @@
 ---
 title: "People Based ML - Serving Facebook Ads"
-author: "Matt Harris & Ken Steif"
+author: "Matt Harris"
 date: "September 18,2022"
 output:
   html_document:
