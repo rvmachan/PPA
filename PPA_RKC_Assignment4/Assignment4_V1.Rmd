@@ -138,13 +138,13 @@ rDivism %>%
 
 ```{r exploratory_continuous_density, message = FALSE, warning = FALSE}
 advertising %>%
-    dplyr::select(click,Area_Income, Time_On_FB, Daily_Internet_Usage, Age) %>%
-    gather(Variable, value, -click) %>%
+    dplyr::select(gender,gang_affiliated, age_at_release, education_level, prison_offense, prison_years, recidivism_within_3years) %>%
+    gather(Variable, value, -recidivism_within_3years) %>%
     ggplot() + 
-    geom_density(aes(value, color=click), fill = "transparent") + 
+    geom_density(aes(value, color=recidivism_within_3years), fill = "transparent") + 
     facet_wrap(~Variable, scales = "free") +
     scale_fill_manual(values = palette2) +
-    labs(title = "Feature distributions click vs. no click",
+    labs(title = "Feature distributions recidivism vs. no recidivism",
          subtitle = "(continous outcomes)")
 ```
 
