@@ -63,6 +63,7 @@ p_load(tidyverse, kableExtra, caret, knitr, pscl, plotROC, pROC, lubridate, sf, 
 
 root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
 source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
+
 ```
 
 ```{r load_data, cache = TRUE}
@@ -137,7 +138,7 @@ rDivism %>%
 ```
 
 ```{r exploratory_continuous_density, message = FALSE, warning = FALSE}
-advertising %>%
+rDivism %>%
     dplyr::select(gender,gang_affiliated, age_at_release, education_level, prison_offense, prison_years, recidivism_within_3years) %>%
     gather(Variable, value, -recidivism_within_3years) %>%
     ggplot() + 
@@ -149,11 +150,11 @@ advertising %>%
 ```
 
 ```{r exploratory_binary, message = FALSE, warning = FALSE}
-advertising %>%
-    dplyr::select(click, Male, Fashion_FB_Group) %>%
-    gather(Variable, value, -click) %>%
-    count(Variable, value, click) %>%
-      ggplot(., aes(value, n, fill = click)) +   
+rDivism %>%
+    dplyr::select(gender, prison_offense, prison_years, recidivism_within_3years) %>%
+    gather(Variable, value, -recidivism_within_3years) %>%
+    count(Variable, value, recidivism_within_3years) %>%
+      ggplot(., aes(value, n, fill = recidivism_within_3years)) +   
         geom_bar(position = "dodge", stat="identity") +
         facet_wrap(~Variable, scales="free") +
         scale_fill_manual(values = palette2) +
@@ -167,49 +168,59 @@ advertising %>%
 
 We have tons of countries in our data set. Most have only a handful of observations. I create a "click average" for each country to use a continuous instead of categorical variable.
 
-I also create a `userTimeFrame` variable to see if the time of day the user is viewing the ad has some kind of effect.
+  - we haveee many different prison offenses so we can create a click average for each prison offense to use a continuous instead of a categorical variable
+
+I also create a `userTimeFrame` variable to see if the time of day the user is viewing the ad has some kind of effect. 
+
+  - translate this to creating a 'ageTimeFrame' to see if the age of release had an effect on the recidivism rate 
 
 ```{r country_variables, cache = TRUE}
 
-advertising <- 
-  advertising %>% 
-  group_by(Country) %>% 
-  summarize(totClicks = sum(clickNumeric), 
+rDivism <- 
+  rDivism %>% 
+  group_by(prison_offense) %>% 
+  summarize(totRD = sum(recidivism_within_3years), #except this is not a numeric thing its a binary thing 
             n = n(), 
-            nationalClickAvg = 100*(totClicks/n)) %>%
-  dplyr::select(-n, -totClicks) %>%
-  right_join(advertising, .) %>%
-  mutate(Timestamp = mdy_hm(Timestamp),
-         userTimeFrame = case_when(hour(Timestamp) < 6  ~ "NIGHT",
-                                   hour(Timestamp) >= 6 & hour(Timestamp) <= 10  ~ "AM",
-                                   hour(Timestamp) >= 10 & hour(Timestamp) < 17  ~ "WORKDAY",
-                                   hour(Timestamp) >= 17  ~ "EVENING"))
+            nationalrDivism = 100*(totRD/n)) %>%
+  dplyr::select(-n, -totRD) %>%
+  right_join(rDivism, .) %>%
+    mutate(ageTimeFrame = case_when(age_at_release <= 32 ~ "Young",
+                                  age_at_release > 33 & age_at_release <= 42 ~ "Middle Aged", 
+                                  age_at_release > 43 & age_at_release <= 48 ~ "Old"))
+
+#  mutate(ageTimeFrame = case_when(age_at_release <= 32 "18-22" & "23-27" & "28-32" ~ "Young",
+ #                                 age_at_release == "33-37" & "38-42" ~ "Middle Aged", 
+  #                                age_at_release == "43-47" & "48 or older" ~ "Old"))
 
 ```
 
 # Create A Logistic Regression Model
 
-A logistic regression model predicts a binary outcome - a `1` or a `0` - a `Click` or a `No Click` and associates a coefficient that describes the change in the probability of the outcome given some change in the independent variable. As I mentioned earlier, for a more detailed discussion of logistic regression, consult the text book.
+A logistic regression model predicts a binary outcome - a `1` or a `0` - a `Click` or a `No Click` and associates a coefficient that describes the change in the probability of the outcome given some change in the independent variable. As I mentioned earlier, for a more detailed discussion of logistic regression, consult the text book. - translate this to binary outcomes of recidivism within three years, 1 or 0 where 1 is yes they've commited another crime and 0 is no they have not commited another crime
 
-We partition our data into a 50/50 training and test set (`p = 0.50`). We call these sets `advertisingTrain` and `advertisingTest`.
+We partition our data into a 50/50 training and test set (`p = 1.50`). We call these sets `advertisingTrain` and `advertisingTest`.
 
 ```{r create_partition}
 set.seed(3456)
-trainIndex <- createDataPartition(advertising$click, p = .50, #splitting into 50-50 in training and testing models
+
+rDivism$rDivismNumeric <-
+  ifelse(rDivism$recidivism_within_3years == "TRUE", 1,0)
+
+trainIndex <- createDataPartition(rDivism$recidivism_within_3years, p = 0.50, #splitting into 50-50 in training and testing models
                                   list = FALSE,
                                   times = 1)
-advertisingTrain <- advertising[ trainIndex,]
-advertisingTest  <- advertising[-trainIndex,]
+rDivismTrain <- rDivism[ trainIndex,]
+rDivismTest  <- rDivism[-trainIndex,]
 
 ```
 
 We run our model with the dependent variable `clickNumeric` and we use most of our variables in the regression. (See `dplyr::select`).
 
 ```{r run_model}
-
-advertisingModel <- glm(clickNumeric ~ ., #glm is generalized linear model, taking in the defaults
-                  data=advertisingTrain %>% 
-                    dplyr::select(-Country, -Timestamp, -userTimeFrame, -click),
+#not working and idk why - confused about the glm part
+rDivismModel <- glm(rDivismNumeric ~ ., #glm is generalized linear model, taking in the defaults
+                    data=rDivismTrain %>% 
+                    dplyr::select(-prison_offense, -ageTimeFrame, -recidivism_within_3years),
                   family="binomial" (link="logit"))
 
 summary(advertisingModel)
@@ -221,9 +232,8 @@ summary(advertisingModel)
 Observe the output of the first model, and **using the code chunk below play around with the variables you decide to include and exclude. Run the model, and then the subsequent line of code which produces goodness of fit metrics.** How is your McFadden R-squared? It's kind of a pseudo-R-squared, not quite interpretable like R-squared for `lm` models. But the closer to 1, generally the better.
 
 ```{r second_model}
-advertisingModel <- glm(clickNumeric ~ .,
-                  data=advertisingTrain %>% dplyr::select(-Country, -Timestamp, -click, -userTimeFrame,
-                                                          -Fashion_FB_Group),
+rDivismModel <- glm(clickNumeric ~ .,
+                  data=rDivismTrain %>% dplyr::select(-Country, -Timestamp, -click, -userTimeFrame, -Fashion_FB_Group),
                   family="binomial" (link="logit"))
 
 summary(advertisingModel)
