@@ -159,7 +159,7 @@ rDivism %>%
         facet_wrap(~Variable, scales="free") +
         scale_fill_manual(values = palette2) +
         labs(x="Click", y="Value",
-             title = "Feature associations with the likelihood of click",
+             title = "Feature associations with the likelihood of recidivism",
              subtitle = "Categorical features") +
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
@@ -220,10 +220,11 @@ We run our model with the dependent variable `clickNumeric` and we use most of o
 #not working and idk why - confused about the glm part
 rDivismModel <- glm(rDivismNumeric ~ ., #glm is generalized linear model, taking in the defaults
                     data=rDivismTrain %>% 
-                    dplyr::select(-prison_offense, -ageTimeFrame, -recidivism_within_3years),
-                  family="binomial" (link="logit"))
-
-summary(advertisingModel)
+                    dplyr::select(-prison_offense, -gender, -recidivism_within_3years),
+                  family="binomial"(link="logit"))
+# i added gender into the model instead of agetime - if we want a more temporal variable
+# we can add it too
+summary(rDivismModel)
 
 ```
 
