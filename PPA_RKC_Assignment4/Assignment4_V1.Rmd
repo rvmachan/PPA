@@ -253,7 +253,10 @@ pR2(rDivismModel2) #McFadden is pseudo R squared
 ```{r testProbs}
 if(class(rDivismTest$prior_arrest_episodes_felony) == "character") {rDivismTest$prior_arrest_episodes_felony <- as.numeric(rDivismTest$prior_arrest_episodes_felony)}
 
-rDivismTest$prior_arrest_episodes_felony[is.na(rDivismTest$prior_arrest_episodes_felony)] <- 10
+rDivismModel$xlevels[["prior_arrest_episodes_felony"]] <- union(rDivismModel$xlevels[["prior_arrest_episodes_felony"]], levels(rDivismTest$prior_arrest_episodes_felony))
+
+
+rDivismTest$prior_arrest_episodes_felony[is.na(rDivismTest$prior_arrest_episodes_felony)] <- 9
 
 testProbs <- data.frame(class = rDivismTest$recidivism_within_3years,
                         Outcome = as.factor(rDivismTest$rDivismNumeric),
@@ -268,7 +271,8 @@ ggplot(testProbs, aes(x = Probs, fill = as.factor(Outcome))) +
   geom_density() +
   facet_grid(Outcome ~ .) +
   scale_fill_manual(values = palette2) +
-  labs(x = "Click", y = "Density of probabilities",
+  ylim(0,1)+
+  labs(x = "Recidivism", y = "Density of probabilities",
        title = "Distribution of predicted probabilities by observed outcome") +
   theme(strip.text.x = element_text(size = 18),
         legend.position = "none")
