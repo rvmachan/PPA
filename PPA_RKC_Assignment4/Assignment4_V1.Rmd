@@ -59,7 +59,7 @@ options(scipen=10000000)
 
 
 if(!require(pacman)){install.packages("pacman"); library(pacman)}
-p_load(tidyverse, kableExtra, caret, knitr, pscl, plotROC, pROC, lubridate, sf, tidycensus, RSocrata, viridis, spatstat, raster, spdep, FNN, grid, gridExtra, classInt)
+p_load(tidyverse, kableExtra, caret, knitr, pscl, plotROC, pROC, lubridate, sf, tidycensus, RSocrata, viridis, spatstat, raster, spdep, FNN, grid, gridExtra, classInt, mice)
 
 root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
 source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
@@ -314,15 +314,30 @@ ggplot(testProbs, aes(d = as.numeric(Outcome), m = Probs)) +
 # Cross validation
 
 ```{r cv}
-ctrl <- trainControl(method = "cv", number = 100, classProbs=TRUE, summaryFunction=twoClassSummary)
 
-cvFit <- train(click ~ .,
-                  data=rDivism %>% 
-                    dplyr::select(-prison_offense, -prison_years, -gender, -race, -education_level), 
-                method="glm", family="binomial",
-                metric="ROC", trControl = ctrl)
 
+# Convert 'recidivism_within_3years' to numeric
+rDivism$RD <- as.numeric(as.character(rDivism$recidivism_within_3years))
+
+# Define train control
+ctrl <- trainControl(method = "cv", number = 100, classProbs = TRUE, summaryFunction = twoClassSummary)
+
+rDivism$RD[is.nan(rDivism$RD)] <- NA
+rDivism <- na.exclude(rDivism$RD)
+
+# Train the model
+cvFit <- train(RD ~ .,
+               data = rDivism %>% 
+                dplyr::select(-prison_offense, -gender, -recidivism_within_3years), 
+               method = "glm", 
+               family = "binomial",
+               metric = "ROC", 
+               trControl = ctrl)
+
+# View the results
 cvFit
+
+
 ```
 
 ```{r goodness_metrics, message = FALSE, warning = FALSE}
