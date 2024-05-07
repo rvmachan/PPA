@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
 # Learning Objectives
@@ -262,6 +262,13 @@ testProbs <- data.frame(class = rDivismTest$recidivism_within_3years,
                         Outcome = as.factor(rDivismTest$rDivismNumeric),
                         Probs = predict(rDivismModel, rDivismTest, type= "response"))
 
+#this might be able to be taken out
+rDivismTest <- rDivismTest %>%
+  mutate(class = rDivismTest$recidivism_within_3years,
+          Outcome = as.factor(rDivismTest$rDivismNumeric),
+          Probs = predict(rDivismModel, rDivismTest, type= "response"))
+
+
 ```
 
 ## Discussion 3
@@ -298,7 +305,10 @@ caret::confusionMatrix(testProbs$predOutcome, testProbs$Outcome,
 # ROC Curve 
 
 ```{r auc, message = FALSE, warning = FALSE}
+roc_object <- roc(testProbs$Outcome, testProbs$predOutcome)
+
 auc(testProbs$Outcome, testProbs$Probs)
+auc(testProbs)
 ```
 
 ```{r roc_curve, warning = FALSE, message = FALSE}
@@ -306,7 +316,7 @@ ggplot(testProbs, aes(d = as.numeric(Outcome), m = Probs)) +
   geom_roc(n.cuts = 50, labels = FALSE, colour = "#FE9900") +
   style_roc(theme = theme_grey) +
   geom_abline(slope = 1, intercept = 0, size = 1.5, color = 'grey') +
-  labs(title = "ROC Curve - clickModel")
+  labs(title = "ROC Curve - Recidivism Model")
 ```
 
 ## Discussion 5
@@ -315,24 +325,44 @@ ggplot(testProbs, aes(d = as.numeric(Outcome), m = Probs)) +
 
 ```{r cv}
 
+######
+# EVERYTHING HIGHLIGHTED SHOULD BE THE WAY TO GO ITS JUST NOT WORKING
+######
+
+#rDivism <- rDivism %>%
+ # mutate(numeric_recidivism_within_3years = rDivism$recidivism_within_3years)
+
+#rDivismTest$recidivism_within_3years[rDivismTest$recidivism_within_3years == "TRUE"] <- 1
+#rDivismTest$recidivism_within_3years[rDivismTest$recidivism_within_3years == "FALSE"] <- 0
+#rDivismTest$recidivism_within_3years <- as.integer(rDivismTest$recidivism_within_3years)
 
 # Convert 'recidivism_within_3years' to numeric
-rDivism$RD <- as.numeric(as.character(rDivism$recidivism_within_3years))
+#rDivism$RD <- as.numeric(as.character(rDivism$recidivism_within_3years))
 
 # Define train control
 ctrl <- trainControl(method = "cv", number = 100, classProbs = TRUE, summaryFunction = twoClassSummary)
 
-rDivism$RD[is.nan(rDivism$RD)] <- NA
-rDivism <- na.exclude(rDivism$RD)
+#rDivismTest$recidivism_within_3years[is.nan(rDivismTest$recidivism_within_3years)] <- NA
+#rDivismTest$recidivism_within_3years <- na.exclude(rDivismTest$recidivism_within_3years)
+
+#rDivism$prior_arrest_episodes_felony[is.nan(rDivism$prior_arrest_episodes_felony)] <- NA
+#rDivism$prior_arrest_episodes_felony <- na.exclude(rDivism$prior_arrest_episodes_felony)
+
+#rDivismTest$prison_offense[is.nan(rDivismTest$prison_offense)] <- NA
+#rDivismTest$prison_offense <- na.exclude(rDivismTest$prison_offense)
+
+rDivism <- drop_na(rDivism)
+#names(rDivismTest)[names(rDivismTest) == "Probs"] <- "classProbs"
 
 # Train the model
-cvFit <- train(RD ~ .,
+cvFit <- train(recidivism_within_3years ~ .,
                data = rDivism %>% 
-                dplyr::select(-prison_offense, -gender, -recidivism_within_3years), 
+               dplyr::select(-prison_offense, -gender, -prior_arrest_episodes_felony, -rDivismNumeric),
                method = "glm", 
                family = "binomial",
                metric = "ROC", 
-               trControl = ctrl)
+               trControl = ctrl,
+               classProbs = TRUE)
 
 # View the results
 cvFit
