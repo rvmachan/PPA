@@ -1,6 +1,6 @@
 ---
-title: "People Based ML - Serving Facebook Ads"
-author: "Matt Harris"
+title: "Predicting Recidivism"
+author: "Kamya Khandelwal, Revathi Machan, Claudia Schreier"
 date: "September 18,2022"
 output:
   html_document:
@@ -295,7 +295,7 @@ caret::confusionMatrix(testProbs$predOutcome, testProbs$Outcome,
 ## Discussion 4
 
 
-# ROC Curve
+# ROC Curve 
 
 ```{r auc, message = FALSE, warning = FALSE}
 auc(testProbs$Outcome, testProbs$Probs)
