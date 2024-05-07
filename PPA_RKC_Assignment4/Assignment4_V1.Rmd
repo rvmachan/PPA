@@ -352,6 +352,10 @@ ctrl <- trainControl(method = "cv", number = 100, classProbs = TRUE, summaryFunc
 #rDivismTest$prison_offense <- na.exclude(rDivismTest$prison_offense)
 
 rDivism <- drop_na(rDivism)
+rDivism$prior_arrest_episodes_felony <- as.numeric(rDivism$prior_arrest_episodes_felony)
+rDivism$recidivism_within_3years <- factor(rDivism$recidivism_within_3years)
+levels(rDivism$recidivism_within_3years) <- make.names(levels(rDivism$recidivism_within_3years))
+
 #names(rDivismTest)[names(rDivismTest) == "Probs"] <- "classProbs"
 
 # Train the model
@@ -361,8 +365,7 @@ cvFit <- train(recidivism_within_3years ~ .,
                method = "glm", 
                family = "binomial",
                metric = "ROC", 
-               trControl = ctrl,
-               classProbs = TRUE)
+               trControl = ctrl)
 
 # View the results
 cvFit
@@ -404,10 +407,10 @@ cost_benefit_table <-
                ifelse(Variable == "False_Negative", (-0.35) * Count,
                ifelse(Variable == "False_Positive", (-0.1) * Count, 0))))) %>%
     bind_cols(data.frame(Description = c(
-              "We correctly predicted no click",
-              "We correctly predicted a click",
-              "We predicted no click and customer clicked",
-              "We predicted a click and customer did not click")))
+              "We correctly predicted no recidivism",
+              "We correctly predicted recidivism",
+              "We predicted no recidivism and there was",
+              "We predicted recidivism and there wasn't")))
 
 kable(cost_benefit_table,
        caption = "Cost/Benefit Table") %>% kable_styling()
