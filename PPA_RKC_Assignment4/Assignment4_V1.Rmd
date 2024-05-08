@@ -13,11 +13,15 @@ output:
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-# What's algorithmic bias
+# Recidivism in the State of Georgia
 
-The Governor of Georgia, Brian Kemp (yikes), has asked the team at Marie Antoinette Predictions to create a model to predict recidivism, or the probability that someone convicted of a crime will be convicted of another crime in the future. Research about recidivism has been embedded into the management framework of the National Institute of Justice, an organization that sponsors government-funded criminal justice research. the NIJ believes that studying recidivism is "one of the most fundamental concepts in criminal justice" because it is something that prison re-entry programs actively are designed to avoid. 
+As a side quest from his mission of removing reproductive rights as the Governor of Georgia, Brian Kemp has asked the team at Marie Antoinette Predictions (MAP) to create a model to predict recidivism, or the probability that someone convicted of a crime will be convicted of another crime in the future. Georgia is one of the leading states with the highest per capita amount of people under correctional supervision. Nationally, around 65 percent of formerly incarcerated people will reoffend, and 30 percent of people will find themselves back in prison within three years, making this issue one of high importance for criminal justice reforms. Recidivism costs the state a lot of money, from continued legal fees and resources for incarcerated individuals. Research about recidivism has been embedded into the management framework of the National Institute of Justice (NIJ), an organization that sponsors government-funded criminal justice research. the NIJ believes that studying recidivism is "one of the most fundamental concepts in criminal justice" because it is something that prison re-entry programs actively are designed to avoid. 
 
-Recidivism is a concept to study in a data-driven approach. Marie Antoinette Predictions obtained a dataset with re-entry data, including the original crime, some demographic information, and other types of personal information about the incarcerated individual, along with whether or not the person was convicted of another crime.
+## Introducing our work
+
+Recidivism is a concept to study in a data-driven approach. MAP obtained a dataset from the NIG with re-entry data, including the original crime, some demographic information, and other types of personal information about the incarcerated individual, along with whether or not the person was convicted of another crime. Using linear models, we can predict whether or not a person will be convicted of a second crime after leaving prison.
+
+The models that are created to predict recidivism can either prioritize specificity or sensitivity. Specificity is the ability of a test to correctly identify true negatives. In this case, a true negative would be that Marie Antoinette Predictions predicts that recidivism will not occur, but it will. A high specificity model indicates that there is a low rate of false positives. Sensitivity is the ability of a test to correctly identify true positives. A high sensitivity model indicates that that there is a low rate of false negatives; for recidivism, this means that the model correctly identifies individuals who will be convicted of another crime after previously being incarcerated. There are benefits and drawbacks to both high sensitivities and specificities, but there usually cannot be both. In either case, there will be a group of individuals who in prediction are mis-classified. What kind of error will Governor Brian Kemp accept in reforming Georgia's criminal justice system?
 
 ```{r load_packages, warning = FALSE}
 options(scipen=10000000)
@@ -76,17 +80,7 @@ rDivism <-
 
 ```
 
-# Data Exploration
-
-Use the `glimpse` command to check out your data set.
-
-Make some plots of our variables - both continuous and categorical. Examine these plots and then jot down your observations to discussion prompt 1.
-
-## Discussion 1:
-
-**What are some of the average characteristics of people who click on this ad?**
-
-**What are some of the ways in which clickers and non-clickers are different?**
+# Exploring our model's components
 
 ```{r exploratory_continuous}
 rDivism %>%
@@ -129,16 +123,6 @@ rDivism %>%
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-# Variable Transformations
-
-We have tons of countries in our data set. Most have only a handful of observations. I create a "click average" for each country to use a continuous instead of categorical variable.
-
-  - we haveee many different prison offenses so we can create a click average for each prison offense to use a continuous instead of a categorical variable
-
-I also create a `userTimeFrame` variable to see if the time of day the user is viewing the ad has some kind of effect. 
-
-  - translate this to creating a 'ageTimeFrame' to see if the age of release had an effect on the recidivism rate 
-
 ```{r country_variables, cache = TRUE}
 
 rDivism <- 
@@ -159,11 +143,11 @@ rDivism <- rDivism %>%
          prior_arrest_episodes_felony = as.factor(ifelse(prior_arrest_episodes_felony == "10 or more", "10", prior_arrest_episodes_felony)))
 ```
 
-# Create A Logistic Regression Model
+# Creating a logistic regression model
 
-A logistic regression model predicts a binary outcome - a `1` or a `0` - a `Click` or a `No Click` and associates a coefficient that describes the change in the probability of the outcome given some change in the independent variable. As I mentioned earlier, for a more detailed discussion of logistic regression, consult the text book. - translate this to binary outcomes of recidivism within three years, 1 or 0 where 1 is yes they've commited another crime and 0 is no they have not commited another crime
+Our logistic regression model predicts a binary outcome. For Brian Kemp, that means there are two (2) options - a *1* or a *0*. A 1 indicates that there was recidivism, and a 0 indicates that were was not. There are also associates probabilities that can affet the outcome depending on the specific variables in the model. To create and test this model, we took our large NIJ dataset and split it into two equal parts - a training and a testing dataset. 
 
-We partition our data into a 50/50 training and test set (`p = 1.50`). We call these sets `advertisingTrain` and `advertisingTest`.
+When running the model, the depending variable is called 'rDivismNumeric' which is the binary outcome of recidivism instead of a TRUE/FALSE outcome. 
 
 ```{r create_partition}
 set.seed(3456)
@@ -180,8 +164,6 @@ rDivismTest  <- rDivism[-trainIndex,]
 
 ```
 
-We run our model with the dependent variable `clickNumeric` and we use most of our variables in the regression. (See `dplyr::select`).
-
 ```{r run_model}
 #not working and idk why - confused about the glm part
 rDivismModel <- glm(rDivismNumeric ~ ., #glm is generalized linear model, taking in the defaults
@@ -192,10 +174,6 @@ rDivismModel <- glm(rDivismNumeric ~ ., #glm is generalized linear model, taking
 # we can add it too
 summary(rDivismModel)
 ```
-
-## Discussion 3
-
-Observe the output of the first model, and **using the code chunk below play around with the variables you decide to include and exclude. Run the model, and then the subsequent line of code which produces goodness of fit metrics.** How is your McFadden R-squared? It's kind of a pseudo-R-squared, not quite interpretable like R-squared for `lm` models. But the closer to 1, generally the better.
 
 ```{r second_model}
 rDivismModel2 <- glm(rDivismNumeric ~ .,
@@ -211,9 +189,6 @@ summary(rDivismModel2)
 pR2(rDivismModel2) #McFadden is pseudo R squared
 
 ```
-
-# Make Predictions
-
 
 ```{r testProbs}
 #if(class(rDivismTest$prior_arrest_episodes_felony) == "character") {rDivismTest$prior_arrest_episodes_felony <- as.numeric(rDivismTest$prior_arrest_episodes_felony)}
@@ -233,8 +208,6 @@ testProbs <- data.frame(#class = rDivismTest$recidivism_within_3years,
 
 ```
 
-## Discussion 3
-
 ```{r plot_testProbs}
 ggplot(testProbs, aes(x = Probs, fill = as.factor(Outcome))) + 
   geom_density() +
@@ -247,7 +220,7 @@ ggplot(testProbs, aes(x = Probs, fill = as.factor(Outcome))) +
         legend.position = "none")
 ```
 
-# Confusion Matrix
+## Confusion Matrix
 
 ```{r thresholds}
 testProbs <- 
@@ -261,16 +234,13 @@ caret::confusionMatrix(testProbs$predOutcome, testProbs$Outcome,
 
 ```
 
-## Discussion 4
+## ROC Curve
 
-
-# ROC Curve 
-# we should cut the auc chunk...
 ```{r auc, message = FALSE, warning = FALSE}
-roc_object <- roc(testProbs$Outcome, testProbs$predOutcome)
+#roc_object <- roc(testProbs$Outcome, testProbs$predOutcome)
 
-auc(as.numeric(testProbs$Outcome), as.numeric(testProbs$Probs))
-auc(testProbs)
+#auc(as.numeric(testProbs$Outcome), as.numeric(testProbs$Probs))
+#auc(testProbs)
 ```
 
 ```{r roc_curve, warning = FALSE, message = FALSE}
@@ -281,9 +251,9 @@ ggplot(testProbs, aes(d = as.numeric(Outcome), m = Probs)) +
   labs(title = "ROC Curve - Recidivism Model")
 ```
 
-## Discussion 5
 
-# Cross validation
+## Model Accuracy
+this would include the model accuracy and the error, summary stats by race, and discussion.
 
 ```{r cv}
 
@@ -358,10 +328,9 @@ dplyr::select(cvFit$resample, -Resample) %>%
 
 ```
 
-# Cost-Benefit Calculation
+## Cost-Benefit calculation of recidivism vs. continued jail-time
 
-## Discussion 6
-
+methods and discussion here
 
 ```{r cost_benefit}
 cost_benefit_table <-
@@ -386,10 +355,6 @@ cost_benefit_table <-
 kable(cost_benefit_table,
        caption = "Cost/Benefit Table") %>% kable_styling()
 ```
-
-# Optimize Thresholds
-
-## Discussion 7
 
 ```{r iterate_threshold}
 iterateThresholds <- function(data) {
@@ -436,7 +401,18 @@ whichThreshold %>%
 
 ```
 
-## Post-Script - Interpreting Logit Coefficients
+# Conclusion
 
-**Explaining the values of the coefficients:**
+* Model finding 1
 
+* Model finding 2
+
+* Models like this one are dangerous to use in the criminal justice system. While it is important to use data-drive approaches to understand phenomenon in our system, this model is not in-depth enough to catch nuances of why or how someone becomes part of the recidivism category.
+* The criminal justice system is ultimately very flawed, as prison re-entry programs very state by state. This model does not account for re-entry, which is a large part of the statistics regarding recidivism.
+  + Re-entry, or programs that prepare incarcerated individuals for life after being released, should begin from the day that they step foot into prison. 
+  + Re-entry programs should include education, job training, mental and physical healthcare, and financial training. Many states do not have re-entry programs unless it is for incarcerated people about to be released. 
+  + The unemployment rate for formerly incarcerated people is much higher than the national average. Additionally, the rate of formerly incarcerated people without a GED, high school diploma, or college degree is also much higher than the national average. Poverty is the largest indicator of recidivism, and re-entry programs need to include anti-poverty strategies within programming.
+
+* There is no benefit to keeping incarcerated people in prison past when is needed for the goal of cutting costs. Prison systems should be focused on rehabilitation instead of predicting future crime - while there are predictors of recidivism that could be generally accurate, re-entry programs can change the rate of recidivism.  
+
+Lasting impressions.............................
