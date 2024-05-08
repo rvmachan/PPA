@@ -1,5 +1,5 @@
 ---
-title: "Predicting Recidivism"
+title: "Can recidivism be predicted?"
 author: "Kamya Khandelwal, Revathi Machan, Claudia Schreier"
 date: "September 18,2022"
 output:
@@ -13,46 +13,11 @@ output:
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-# Learning Objectives
+# What's algorithmic bias
 
-This lab introduces **classification** as new task in modeling. As opposed to regression where we predict on continuous outcome, classification predicts the probability of one or many events. In this case, we're are only interested in one event; did a user click or not. We will use **Logistic Regression** with the `glm` function to fit this model. Additionally, this lab focuses on finding the correct **threshold** to use for assigning predictions to the classes of click or no-click. Finally, we will use a form of cost optimization to pick the best threshold.
+The Governor of Georgia, Brian Kemp (yikes), has asked the team at Marie Antoinette Predictions to create a model to predict recidivism, or the probability that someone convicted of a crime will be convicted of another crime in the future. Research about recidivism has been embedded into the management framework of the National Institute of Justice, an organization that sponsors government-funded criminal justice research. the NIJ believes that studying recidivism is "one of the most fundamental concepts in criminal justice" because it is something that prison re-entry programs actively are designed to avoid. 
 
-The policy related takeaway from this is that picking a threshold depends on how the predictions will be used in make policy. Much of the time, your job is not to simply make predictions, but to inform stakeholders of how those predictions should be used to implement policy. The lesson of applying a cost optimization method to your predictions is a very important tool in your toolbox.
-
-### Review
-
--   `dplyr`, `ggplot2` and table joins
-
--   creating data partitions and `caret`
-
--   summarizing model objects and cross-validation
-
-### New skills:
-
--   Using `glm` function and `family="binomial" (link="logit")` to fit a logistic regression models
-
--   **Goodness-of-fit** metrics with logistic regression models
-
--   creating a **confusion matrix** and understanding False/True Positives/Negatives
-
--   Area under the ROC Curve (**AUC**) as a model accuracy metric
-
--   **Cost-Benefit** optimization with a cost function on your predictions.
-
-# Use Case
-
-Your digital marketing agency is tasked with targeting Facebook users with an ad for a discount fashion brand. To test out a new advertising strategy, you serve an ad to 1000 randomly selected users and see who clicks. You are going to build a model based on their behavior (click or no click) and some attributes about them. We will try to describe and evaluate that model in the context of your business process.
-
-
-**At various points, there are prompts for you to fill out - those are in bold text. Keep a log of your answers - we will compare notes during or at the end of class.**
-
- The textbook has a full annotation of the code and describes the details of logistic regression, goodness of fit metrics and more. This workshop mostly just deals with the process and interpretation.
-
-# Set Up
-
-Install libraries and load the data set `advertising`.
-
-These data come from a [Kaggle ML example data set](%22https://www.kaggle.com/faressayah/logistic-regression-tutorial-predict-ad-click?select=advertising.csv%22) and are somewhat edited and contain added noise.
+Recidivism is a concept to study in a data-driven approach. Marie Antoinette Predictions obtained a dataset with re-entry data, including the original crime, some demographic information, and other types of personal information about the incarcerated individual, along with whether or not the person was convicted of another crime.
 
 ```{r load_packages, warning = FALSE}
 options(scipen=10000000)
@@ -251,23 +216,20 @@ pR2(rDivismModel2) #McFadden is pseudo R squared
 
 
 ```{r testProbs}
-if(class(rDivismTest$prior_arrest_episodes_felony) == "character") {rDivismTest$prior_arrest_episodes_felony <- as.numeric(rDivismTest$prior_arrest_episodes_felony)}
+#if(class(rDivismTest$prior_arrest_episodes_felony) == "character") {rDivismTest$prior_arrest_episodes_felony <- as.numeric(rDivismTest$prior_arrest_episodes_felony)}
 
 rDivismModel$xlevels[["prior_arrest_episodes_felony"]] <- union(rDivismModel$xlevels[["prior_arrest_episodes_felony"]], levels(rDivismTest$prior_arrest_episodes_felony))
 
 
-rDivismTest$prior_arrest_episodes_felony[is.na(rDivismTest$prior_arrest_episodes_felony)] <- 9
+#rDivismTest$prior_arrest_episodes_felony[is.na(rDivismTest$prior_arrest_episodes_felony)] <- 9
+levels_train <- levels(rDivismTrain$prior_arrest_episodes_felony)
 
-testProbs <- data.frame(class = rDivismTest$recidivism_within_3years,
+# Relevel the factor variable in the new data
+rDivismTest$prior_arrest_episodes_felony <- factor(rDivismTest$prior_arrest_episodes_felony, levels = levels_train)
+
+testProbs <- data.frame(#class = rDivismTest$recidivism_within_3years,
                         Outcome = as.factor(rDivismTest$rDivismNumeric),
                         Probs = predict(rDivismModel, rDivismTest, type= "response"))
-
-#this might be able to be taken out
-rDivismTest <- rDivismTest %>%
-  mutate(class = rDivismTest$recidivism_within_3years,
-          Outcome = as.factor(rDivismTest$rDivismNumeric),
-          Probs = predict(rDivismModel, rDivismTest, type= "response"))
-
 
 ```
 
@@ -276,7 +238,7 @@ rDivismTest <- rDivismTest %>%
 ```{r plot_testProbs}
 ggplot(testProbs, aes(x = Probs, fill = as.factor(Outcome))) + 
   geom_density() +
-  facet_grid(Outcome ~ .) +
+  facet_grid(Outcome ~ . ) +
   scale_fill_manual(values = palette2) +
   ylim(0,1)+
   labs(x = "Recidivism", y = "Density of probabilities",
@@ -303,11 +265,11 @@ caret::confusionMatrix(testProbs$predOutcome, testProbs$Outcome,
 
 
 # ROC Curve 
-
+# we should cut the auc chunk...
 ```{r auc, message = FALSE, warning = FALSE}
 roc_object <- roc(testProbs$Outcome, testProbs$predOutcome)
 
-auc(testProbs$Outcome, testProbs$Probs)
+auc(as.numeric(testProbs$Outcome), as.numeric(testProbs$Probs))
 auc(testProbs)
 ```
 
@@ -352,16 +314,25 @@ ctrl <- trainControl(method = "cv", number = 100, classProbs = TRUE, summaryFunc
 #rDivismTest$prison_offense <- na.exclude(rDivismTest$prison_offense)
 
 rDivism <- drop_na(rDivism)
+rDivismTest <- drop_na(rDivismTest)
 rDivism$prior_arrest_episodes_felony <- as.numeric(rDivism$prior_arrest_episodes_felony)
+rDivismTest$prior_arrest_episodes_felony <- as.numeric(rDivismTest$prior_arrest_episodes_felony)
+
+#notnew and this worked
 rDivism$recidivism_within_3years <- factor(rDivism$recidivism_within_3years)
 levels(rDivism$recidivism_within_3years) <- make.names(levels(rDivism$recidivism_within_3years))
+
+#new
+rDivismTest$recidivism_within_3years <- factor(rDivismTest$recidivism_within_3years)
+levels(rDivismTest$recidivism_within_3years) <- make.names(levels(rDivismTest$recidivism_within_3years))
 
 #names(rDivismTest)[names(rDivismTest) == "Probs"] <- "classProbs"
 
 # Train the model
 cvFit <- train(recidivism_within_3years ~ .,
-               data = rDivism %>% 
-               dplyr::select(-prison_offense, -gender, -prior_arrest_episodes_felony, -rDivismNumeric),
+               data = rDivismTest %>% 
+               dplyr::select(-prison_offense, -gender, -prior_arrest_episodes_felony,
+                            -rDivismNumeric),
                method = "glm", 
                family = "binomial",
                metric = "ROC", 
