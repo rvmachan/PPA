@@ -1,6 +1,6 @@
 ---
 title: 'Assignment 3: Predictive Policing'
-author: "Kamya Khandelwal"
+author: "KRC"
 date: "04/14/2024"
 output:
   html_document:
