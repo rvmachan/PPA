@@ -74,7 +74,6 @@ chicagoBoundary <-
   st_read(file.path(root.dir, "/Chapter5/chicagoBoundary.geojson")) %>%  
   st_transform('ESRI:102271') 
 
-
 rDivism <-
   read_csv("https://data.ojp.usdoj.gov/resource/ynf5-u8nk.csv")
 
@@ -165,7 +164,7 @@ rDivismTest  <- rDivism[-trainIndex,]
 #not working and idk why - confused about the glm part
 rDivismModel <- glm(rDivismNumeric ~ ., #glm is generalized linear model, taking in the defaults
                     data=rDivismTrain %>% 
-                    dplyr::select(-prison_offense, -gender, -recidivism_within_3years),
+                    dplyr::select(-prison_offense, -prison_years, -gender, -recidivism_within_3years), # -recidivism_arrest_year1, -recidivism_arrest_year2, -recidivism_arrest_year3),
                   family="binomial"(link="logit"))
 # i added gender into the model instead of agetime - if we want a more temporal variable
 # we can add it too
@@ -174,7 +173,7 @@ summary(rDivismModel)
 
 ```{r second_model, results = 'hide'}
 rDivismModel2 <- glm(rDivismNumeric ~ .,
-                  data=rDivismTrain %>% dplyr::select(-prison_offense, -prison_years, -gender, -race, -education_level),
+                  data=rDivismTrain %>% dplyr::select(-prison_offense, -prison_years, -gender, -race, -education_level, -recidivism_arrest_year1, -recidivism_arrest_year2, -recidivism_arrest_year3, -recidivism_within_3years),
                   family="binomial" (link="logit"))
 
 summary(rDivismModel2)
@@ -193,13 +192,13 @@ pR2(rDivismModel2) #McFadden is pseudo R squared
 rDivismModel$xlevels[["prior_arrest_episodes_felony"]] <- union(rDivismModel$xlevels[["prior_arrest_episodes_felony"]], levels(rDivismTest$prior_arrest_episodes_felony))
 
 
-#rDivismTest$prior_arrest_episodes_felony[is.na(rDivismTest$prior_arrest_episodes_felony)] <- 9
+rDivismTest$prior_arrest_episodes_felony[is.na(rDivismTest$prior_arrest_episodes_felony)] <- 9
 levels_train <- levels(rDivismTrain$prior_arrest_episodes_felony)
 
 # Relevel the factor variable in the new data
 rDivismTest$prior_arrest_episodes_felony <- factor(rDivismTest$prior_arrest_episodes_felony, levels = levels_train)
 
-testProbs <- data.frame(#class = rDivismTest$recidivism_within_3years,
+testProbs <- data.frame(class = rDivismTest$recidivism_within_3years,
                         Outcome = as.factor(rDivismTest$rDivismNumeric),
                         Probs = predict(rDivismModel, rDivismTest, type= "response"))
 
