@@ -1,0 +1,571 @@
+---
+title: 'Assignment 3: Predictive Policing'
+author: "KRC"
+date: "04/14/2024"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    code_download: true
+    theme: journal  
+---
+
+I'm going to run through the code base with a few variables in the model.
+
+Goals for the project are:
+
+1. Learn how to build spatial variables in a raster-like grid called a "fishnet"
+
+2. Learn how to run local Moran's I as a measure of local clustering
+
+3. Run a poisson regression to predict events measured in counts
+
+4. Compare model performance to Kernal Density.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+
+library(tidyverse)
+library(sf)
+library(RSocrata)
+library(viridis)
+library(spatstat)
+library(raster)
+library(spdep)
+library(FNN)
+library(grid)
+library(gridExtra)
+library(knitr)
+library(kableExtra)
+library(tidycensus)
+library(classInt)   # for KDE and ML risk class intervals
+# functions
+root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
+source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
+
+```
+
+## Read in Data from Chicago
+
+This uses the Socrata package for some data sets. I am bringing in assault data for this assignment.
+
+```{r read_data}
+# Read and process police districts data
+policeDistricts <- 
+  st_read("https://data.cityofchicago.org/api/geospatial/fthy-xz3r?method=export&format=GeoJSON") %>%
+  st_transform('ESRI:102271') %>%  # Transform coordinate reference system
+  dplyr::select(District = dist_num)  # Select only the district number, renaming it to 'District'
+
+# Read and process police beats data
+policeBeats <- 
+  st_read("https://data.cityofchicago.org/api/geospatial/aerh-rz74?method=export&format=GeoJSON") %>%
+  st_transform('ESRI:102271') %>%  # Transform coordinate reference system
+  dplyr::select(District = beat_num)  # Select only the beat number, renaming it to 'District'
+
+# Combine police districts and beats data into one dataframe
+bothPoliceUnits <- rbind(
+  mutate(policeDistricts, Legend = "Police Districts"),  # Add a 'Legend' column and label for police districts
+  mutate(policeBeats, Legend = "Police Beats")  # Add a 'Legend' column and label for police beats
+)
+```
+
+```{r police data}
+# Read and process assault data
+assault <- 
+  read.socrata("https://data.cityofchicago.org/Public-Safety/Crimes-2017/d62x-nvdr") %>% 
+  filter(Primary.Type == "ASSAULT") %>%  # Filter assault data
+  mutate(x = gsub("[()]", "", Location)) %>%  # Clean location data
+  separate(x, into = c("Y", "X"), sep = ",") %>%  # Separate X and Y coordinates
+  mutate(X = as.numeric(X), Y = as.numeric(Y)) %>%  # Convert coordinates to numeric
+  na.omit() %>%  # Remove rows with missing values
+  st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%  # Convert to sf object with specified CRS
+  st_transform('ESRI:102271') %>%  # Transform coordinate reference system
+  distinct()  # Keep only distinct geometries
+
+# Read and process Chicago boundary data
+chicagoBoundary <- 
+  st_read(file.path(root.dir, "/Chapter5/chicagoBoundary.geojson")) %>%  # Read Chicago boundary data
+  st_transform('ESRI:102271')  # Transform coordinate reference system
+
+```
+
+## visualizing point data
+
+Here I'm plotting point data and density. These areas are indicated by denser clusters of red points (individual incidents) on the left and warmer colors on the density plot on the right, suggesting a higher concentration of assault crimes.
+
+```{r fig.width=6, fig.height=4}
+# Uses grid.arrange to organize independent plots
+grid.arrange(
+  ncol = 2,
+  
+  # Plot 1: Assault overlaid on Chicago boundary
+  ggplot() + 
+    geom_sf(data = chicagoBoundary) +  # Add Chicago boundary
+    geom_sf(data = assault, colour = "red", size = 0.1, show.legend = "point") +  # Overlay assault crimes
+    labs(title = "Assault, Chicago - 2017") +  # Set plot title
+    theme_void(),  # Use a blank theme
+  
+  # Plot 2: Density of assault crimes with contours overlaid on Chicago boundary
+  ggplot() + 
+    geom_sf(data = chicagoBoundary, fill = "grey40") +  # Add Chicago boundary with grey fill
+    stat_density2d(data = data.frame(st_coordinates(assault)),  # Compute 2D kernel density estimate
+                   aes(X, Y, fill = ..level.., alpha = ..level..),  # Define aesthetics for density contours
+                   size = 0.01, bins = 40, geom = 'polygon') +  # Set size and number of bins for contours
+    scale_fill_viridis() +  # Use Viridis color scale for fill
+    scale_alpha(range = c(0.00, 0.35), guide = FALSE) +  # Set transparency range for contours
+    labs(title = "Density of Assault crimes") +  # Set plot title
+    theme_void() + theme(legend.position = "none")  # Use a blank theme and remove legend
+)
+
+```
+The maps seem to depict areas with higher incidences of assault, which could correspond to regions known for higher levels of crime like Homan Square, the South Side of Chicago and South Shore. The chances of becoming a victim of any type of crime in South Shore is 1 in 13, according to PropertyClub. Robbery and assault are common in these neighborhoods, and murder and gun violence are much higher than the national average. 
+
+## Creating a fishnet grid
+
+I'm using sf package to create the grid and using the boundary to clip the grid to the data.
+
+```{r fishnet}
+## using {sf} to create the grid
+## Note the `.[chicagoBoundary] %>% ` line. This is needed to clip the grid to our data
+fishnet <- 
+st_make_grid(chicagoBoundary,
+               cellsize = 500, 
+               square = TRUE) %>%
+  .[chicagoBoundary] %>%            # fast way to select intersecting polygons
+  st_sf() %>%   mutate(uniqueID = 1:n())
+
+```
+
+### Aggregate points to the fishnet
+
+```{r spatialjoin}
+## add a value of 1 to each crime, sum them with aggregate
+crime_net <- 
+  dplyr::select(assault) %>% 
+  mutate(countAssault = 1) %>% 
+  aggregate(., fishnet, sum) %>%
+  mutate(countAssault = replace_na(countAssault, 0),
+         uniqueID = 1:n(),
+         cvID = sample(round(nrow(fishnet) / 24), 
+                       size=nrow(fishnet), replace = TRUE))
+
+ggplot() +
+  geom_sf(data = crime_net, aes(fill = countAssault), color = NA) +
+  scale_fill_viridis("Count of Assault") +
+  labs(title = "Count of Assault for the fishnet") +
+  theme_void()
+
+```
+
+## Modeling Spatial Features
+
+I pulled in a single variable for the model to keep it simple. I looked at alley lights out data in relation to assault crime because poorly lit areas may have a higher incidence of such incidents, suggesting a possible correlation between street lighting and public safety.
+
+```{r addpredictor}
+## only pulling a single variable for our model to keep it simple
+## using Socrata again
+# Read the dataset of alley lights out 311 service requests from the City of Chicago
+lightsout <- 
+  read.socrata("https://data.cityofchicago.org/Service-Requests/311-Service-Requests-Alley-Lights-Out-Historical/t28b-ys7j") %>%
+    # Extract the year from the creation date and filter for the year 2017
+    mutate(year = substr(creation_date, 1, 4)) %>% filter(year == "2017") %>%
+    # Select latitude and longitude columns and remove rows with missing values
+    dplyr::select(Y = latitude, X = longitude) %>%
+    na.omit() %>%
+    # Convert to simple feature (sf) object with geographic coordinates
+    st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
+    # Transform coordinates to match the coordinate reference system (CRS) of the fishnet
+    st_transform(st_crs(fishnet)) %>%
+    # Add a legend label indicating abandoned cars
+    mutate(Legend = "lights_out")
+
+# Read neighborhood boundaries for Chicago and transform to match fishnet CRS
+neighborhoods <- 
+  st_read("https://raw.githubusercontent.com/blackmad/neighborhoods/master/chicago.geojson") %>%
+  st_transform(st_crs(fishnet))
+
+
+```
+### Alley lights out overlaid on Chicago neighborhooods
+
+```{r plot2}
+  # Plot 2: Alley lights out overlaid on Chicago neighborhooods
+  ggplot() + 
+    geom_sf(data = neighborhoods) +  # Add Chicago boundary
+    geom_sf(data = lightsout, colour = "red", size = 0.1, show.legend = "point") +  
+    labs(title = "Alley Lights Out, Chicago - 2017") +  # Set plot title
+    theme_void()  # Use a blank theme
+```
+
+
+#### Aggregating features to our fishnet
+
+The overall objective here was to assign the fishnet ID to each lights out point, group the points by fishnet ID and count them per ID, join that count back to the fishnet and then go from a long format to a wide format.
+
+
+```{r jointofishnet}
+
+# Join the alley lights out data with the fishnet grid based on spatial intersection
+vars_net <- lightsout %>%  # Start with the alley lights out data
+  st_join(fishnet, join = st_within) %>%  # Perform spatial join with fishnet grid, keeping only points within grid cells
+  st_drop_geometry() %>%  # Drop geometry column (no longer needed after joining)
+  group_by(uniqueID, Legend) %>%  # Group data by uniqueID and Legend (e.g., lights_out)
+  summarize(count = n()) %>%  # Calculate count of points within each group (grid cell)
+  left_join(fishnet, ., by = "uniqueID") %>%  # Left join fishnet grid with summarized counts, using uniqueID as key
+  spread(Legend, count, fill = 0) %>%  # Spread Legend values into separate columns, filling missing values with 0
+  dplyr::select(-`<NA>`) %>%  # Remove columns with NAs (generated during spreading)
+  ungroup()  # Ungroup the data frame (remove grouping structure)
+
+
+```
+
+## Nearest Neighbor Feature
+
+This code calculates the nearest neighbors (NN) of alley lights out data to the centroids of fishnet grid cells. It first defines two convenience aliases st_c and st_coid for st_coordinates and st_centroid functions, respectively, to reduce the length of function names. Then, it creates a new column named lightsout.nn in the vars_net dataframe using a custom nn_function. This function finds the nearest neighbors of the centroids of fishnet grid cells to the alley lights out locations, considering the 3 closest neighbors (k = 3).
+
+```{r knn}
+# Convenience aliases to reduce the length of function names
+st_c    <- st_coordinates  # Alias for st_coordinates function
+st_coid <- st_centroid     # Alias for st_centroid function
+
+# Create nearest neighbor (NN) relationship from alley lights out data to fishnet grid cells
+vars_net <- vars_net %>%  # Start with the summarized variables data
+    mutate(lightsout.nn = nn_function(  # Create a new column for nearest neighbor information
+        st_c(st_coid(vars_net)),  # Calculate centroids of fishnet grid cells
+        st_c(lightsout),         # Get coordinates of abandoned cars
+        k = 3                      # Number of nearest neighbors to find
+    ))
+
+```
+
+
+```{r vizNN}
+## Visualize the NN feature
+vars_net.long.nn <- 
+  dplyr::select(vars_net, ends_with(".nn")) %>%
+    gather(Variable, value, -geometry)
+
+ggplot() +
+      geom_sf(data = vars_net.long.nn, aes(fill=value), colour=NA) +
+      scale_fill_viridis(name="NN Distance") +
+      labs(title="Alley Lights Out NN Distance") +
+      theme_void()
+```
+
+## Join NN feature to our fishnet
+
+Since the counts were aggregated to each cell by `uniqueID` we can use that to join the counts to the fishnet.
+
+```{r}
+## important to drop the geometry from joining features
+final_net <-
+  left_join(crime_net, st_drop_geometry(vars_net), by="uniqueID") 
+
+```
+
+### Join in areal data
+
+Using spatial joins to join *centroids* of fishnets to polygon for neighborhoods and districts.
+
+```{r areal data}
+
+final_net <-
+  st_centroid(final_net) %>%
+    st_join(dplyr::select(neighborhoods, name), by = "uniqueID") %>%
+    st_join(dplyr::select(policeDistricts, District), by = "uniqueID") %>%
+      st_drop_geometry() %>%
+      left_join(dplyr::select(final_net, geometry, uniqueID)) %>%
+      st_sf() %>%
+  na.omit()
+
+# for live demo
+# mapview::mapview(final_net, zcol = "District")
+```
+
+## Local Moran's I for fishnet grid cells
+
+Using {spdep} package to to build neighborhood weights and list to calculate local Moran's I.
+
+```{r}
+## generates warnings from PROJ issues
+## {spdep} to make polygon to neighborhoods... 
+final_net.nb <- poly2nb(as_Spatial(final_net), queen=TRUE)
+## ... and neighborhoods to list of weigths
+final_net.weights <- nb2listw(final_net.nb, style="W", zero.policy=TRUE)
+
+# print(final_net.weights, zero.policy=TRUE)
+```
+
+```{r local moran}
+## see ?localmoran
+local_morans <- localmoran(final_net$lightsout, final_net.weights, zero.policy=TRUE) %>% 
+  as.data.frame()
+
+# join local Moran's I results to fishnet
+final_net.localMorans <- 
+  cbind(local_morans, as.data.frame(final_net)) %>% 
+  st_sf() %>%
+  dplyr::select(lightsout_count = lightsout.nn, 
+                Local_Morans_I = Ii, 
+                P_Value = `Pr(z != E(Ii))`) %>%
+  mutate(Significant_Hotspots = ifelse((P_Value <= 0.05), 1, 0)) %>%
+  gather(Variable, Value, -geometry)
+  
+```
+
+### Plotting local Moran's I results
+
+This is a complex code chunk - it's a loop which builds ggplots of local Moran's for each of your `vars`.
+It is important to recognize that we can get high local moran's I values in the case of either high values near other high values or low values near other low values. If you check out the equation for LMI, you'll see that it is driven by a calulation for all pairs of neighbors, that looks at the (in this case) home values of one neighborhood minus the mean of all home values in the study, times home values of an adjacent neighborhood minus the mean. Therefore, since we multiply them together, two values below the mean will yield and positive value as well two values above the mean. In the code below, we examine the local moran's I value, the p-value, and extracts hotspots (that can be hot or cold!) based on the p-value.
+
+The maps show areas where high values cluster together (hotspots), areas of low value clustering (cold spots), and the significance of these clusters, indicating where these patterns are statistically meaningful.The significant hotspots in the South may be due to a combination of socio-economic factors, such as poverty, unemployment, and urban decay, which are historically linked to higher crime rates. Additionally, this area has been noted for gang activity which contributes to violence.
+
+```{r fig.width=10, fig.height=4}
+## This is just for plotting
+vars <- unique(final_net.localMorans$Variable)
+varList <- list()
+
+for(i in vars){
+  varList[[i]] <- 
+    ggplot() +
+      geom_sf(data = filter(final_net.localMorans, Variable == i), 
+              aes(fill = Value), colour=NA) +
+      scale_fill_viridis(name="") +
+      labs(title=i) +
+      theme_void() + theme(legend.position="bottom")}
+
+do.call(grid.arrange,c(varList, ncol = 4, top = "Local Morans I statistics, Assault"))
+```
+
+Now, we need to actually find the clusters of high-high values that exist in the upper-right quadrant of a local moran's I plot. This plots the original values (lightsout) and the spatial lag of that value (wx), the average lights out value for each cells' neighboring cells. Not the scale function in front of lihgts out in the mp function. This places the values on a z-score so that the average value is 0 and positive values are above the mean (1= 1sd above the mean). A 'high' value technically means it is above the mean of the city. This code then looks for values of the cell that are above the mean and values of its neighborhs that are above the mean and only takes those that are statistically significant. We create a binary variable called 'hotspot' that meets these criteria.
+
+The chart suggests a positive spatial autocorrelation for alley lights out incidents, as indicated by the clustering of data points along the line of fit. 
+
+```{r lmi_hotspot}
+
+lmoran <- localmoran(final_net$lightsout, final_net.weights,  zero.policy=TRUE)
+
+final_net$lmI <- lmoran[, "Ii"] # local Moran's I
+final_net$lmZ <- lmoran[, "Z.Ii"] # z-scores
+final_net$lmp <- lmoran[, "Pr(z != E(Ii))"]
+
+
+mp <- moran.plot(as.vector(scale(final_net$lightsout)), final_net.weights, zero.policy = TRUE)
+
+##Create a hotspot variable:
+final_net$lmp <- ifelse(is.nan(final_net$lmp), 0.10, final_net$lmp)
+final_net$hotspot <- 0
+final_net[(mp$x >=0 & mp$wx >=0) & final_net$lmp <= 0.05, "hotspot"]<- 1
+```
+
+Now we will calculate distance to that nearest hotspot.
+
+
+```{r}
+# generates warning from NN
+final_net <- final_net %>% 
+  mutate(lightsout.isSig.dist = 
+           nn_function(st_c(st_coid(final_net)),
+                       st_c(st_coid(filter(final_net, 
+                                           hotspot == 1))), 
+                       k = 1))
+
+```
+
+### Plot NN distance to hot spot
+
+Lighter areas represent locations with the longest distances to the nearest reported alley light outage, suggesting lower spatial density of such reports.
+
+```{r}
+ggplot() +
+      geom_sf(data = final_net, aes(fill=lightsout.isSig.dist), colour=NA) +
+      scale_fill_viridis(name="NN Distance") +
+      labs(title="Alley Lights Out NN Distance") +
+      theme_void()
+```
+
+## Modeling and CV
+
+```{r results='hide'}
+
+# View(crossValidate)
+
+## define the variables we want
+reg.ss.vars <- c("lightsout.nn", "lightsout.isSig.dist")
+
+## RUN REGRESSIONS
+reg.ss.spatialCV <- crossValidate(
+  dataset = final_net,
+  id = "name",                           
+  dependentVariable = "countAssault",
+  indVariables = reg.ss.vars) %>%
+    dplyr::select(cvID = name, countAssault, Prediction, geometry)
+```
+
+```{r}
+# calculate errors by NEIGHBORHOOD
+error_by_reg_and_fold <- 
+  reg.ss.spatialCV %>%
+    group_by(cvID) %>% 
+    summarize(Mean_Error = mean(Prediction - countAssault, na.rm = T),
+              MAE = mean(abs(Mean_Error), na.rm = T),
+              SD_MAE = mean(abs(Mean_Error), na.rm = T)) %>%
+  ungroup()
+
+error_by_reg_and_fold %>% 
+  arrange(desc(MAE))
+error_by_reg_and_fold %>% 
+  arrange(MAE)
+
+## plot histogram of OOF (out of fold) errors
+error_by_reg_and_fold %>%
+  ggplot(aes(MAE)) + 
+    geom_histogram(bins = 30, colour="black", fill = "#FDE725FF") +
+  scale_x_continuous(breaks = seq(0, 11, by = 1)) + 
+    labs(title="Distribution of MAE", subtitle = "LOGO-CV",
+         x="Mean Absolute Error", y="Count") 
+```
+It seems that the prediction model's accuracy varies across different neighborhoods, with some areas showing larger errors than others. 
+
+## Density vs predictions
+
+The `spatstat` function gets us kernal density estimates with varying search radii.
+
+```{r kd}
+# demo of kernel width
+as_ppp <- as.ppp(st_coordinates(assault), W = st_bbox(final_net))
+as_KD.1000 <- density.ppp(as_ppp, 1000)
+as_KD.1500 <- density.ppp(as_ppp, 1500)
+as_KD.2000 <-density.ppp(as_ppp, 2000)
+as_KD.df <- rbind(
+  mutate(data.frame(rasterToPoints(mask(raster(as_KD.1000), as(neighborhoods, 'Spatial')))), Legend = "1000 Ft."),
+  mutate(data.frame(rasterToPoints(mask(raster(as_KD.1500), as(neighborhoods, 'Spatial')))), Legend = "1500 Ft."),
+  mutate(data.frame(rasterToPoints(mask(raster(as_KD.2000), as(neighborhoods, 'Spatial')))), Legend = "2000 Ft.")) 
+
+as_KD.df$Legend <- factor(as_KD.df$Legend, levels = c("1000 Ft.", "1500 Ft.", "2000 Ft."))
+
+ggplot(data=as_KD.df, aes(x=x, y=y)) +
+  geom_raster(aes(fill=layer)) + 
+  facet_wrap(~Legend) +
+  coord_sf(crs=st_crs(final_net)) + 
+  scale_fill_viridis(name="Density") +
+  labs(title = "Kernel density with 3 different search radii") +
+  theme_void()
+```
+Areas with higher concentrations of assault incidents are indicated by warmer colors, showing where such crimes were most prevalent in the city.
+
+```{r kd2}
+
+as.data.frame(as_KD.1000) %>%
+  st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
+  aggregate(., final_net, mean) %>%
+   ggplot() +
+     geom_sf(aes(fill=value)) +
+     geom_sf(data = sample_n(assault, 1500), size = .5) +
+     scale_fill_viridis(name = "Density") +
+     labs(title = "Kernel density of 2017 assault") +
+     theme_void()
+```
+
+## Getting 2018 crime data
+
+Let's see how our model performed relative to KD on the following year's data.
+
+```{r 2018 data}
+assault18 <- 
+  read.socrata("https://data.cityofchicago.org/Public-Safety/Crimes-2018/3i3m-jwuy") %>% 
+  filter(Primary.Type == "ASSAULT") %>%
+  mutate(x = gsub("[()]", "", Location)) %>%
+  separate(x,into= c("Y","X"), sep=",") %>%
+  mutate(X = as.numeric(X),
+         Y = as.numeric(Y)) %>% 
+  na.omit %>%
+  st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
+  st_transform('ESRI:102271') %>% 
+  distinct() %>%
+  .[fishnet,]
+```
+
+```{r new}
+
+as_KDE_sum <- as.data.frame(as_KD.1000) %>%
+  st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
+  aggregate(., final_net, mean) 
+kde_breaks <- classIntervals(as_KDE_sum$value, 
+                             n = 5, "fisher")
+as_KDE_sf <- as_KDE_sum %>%
+  mutate(label = "Kernel Density",
+         Risk_Category = classInt::findCols(kde_breaks),
+         Risk_Category = case_when(
+           Risk_Category == 5 ~ "5th",
+           Risk_Category == 4 ~ "4th",
+           Risk_Category == 3 ~ "3rd",
+           Risk_Category == 2 ~ "2nd",
+           Risk_Category == 1 ~ "1st")) %>%
+  cbind(
+    aggregate(
+      dplyr::select(assault18) %>% mutate(asCount = 1), ., sum) %>%
+    mutate(asCount = replace_na(asCount, 0))) %>%
+  dplyr::select(label, Risk_Category, asCount)
+```
+
+```{r comp}
+ml_breaks <- classIntervals(reg.ss.spatialCV$Prediction, 
+                             n = 5, "fisher")
+as_risk_sf <-
+  reg.ss.spatialCV %>%
+  mutate(label = "Risk Predictions",
+         Risk_Category =classInt::findCols(ml_breaks),
+         Risk_Category = case_when(
+           Risk_Category == 5 ~ "5th",
+           Risk_Category == 4 ~ "4th",
+           Risk_Category == 3 ~ "3rd",
+           Risk_Category == 2 ~ "2nd",
+           Risk_Category == 1 ~ "1st")) %>%
+  cbind(
+    aggregate(
+      dplyr::select(assault18) %>% mutate(asCount = 1), ., sum) %>%
+      mutate(asCount = replace_na(asCount, 0))) %>%
+  dplyr::select(label,Risk_Category, asCount)
+```
+
+We don't do quite as well because we don't have very many features, but still pretty good.
+
+```{r comp plot}
+rbind(as_KDE_sf, as_risk_sf) %>%
+  na.omit() %>%
+  gather(Variable, Value, -label, -Risk_Category, -geometry) %>%
+  ggplot() +
+    geom_sf(aes(fill = Risk_Category), colour = NA) +
+    geom_sf(data = sample_n(assault18, 3000), size = .5, colour = "black") +
+    facet_wrap(~label, ) +
+    scale_fill_viridis(discrete = TRUE) +
+    labs(title="Comparison of Kernel Density and Risk Predictions",
+         subtitle="2017 assault risk predictions; 2018 assault") +
+    mapTheme(title_size = 14)
+```
+The maps show where assaults happened in 2017 and where they might happen in 2018. This shows us that we can use old data to guess where crimes might happen next.
+
+```{r comp bar}
+rbind(as_KDE_sf, as_risk_sf) %>%
+  st_drop_geometry() %>%
+  na.omit() %>%
+  gather(Variable, Value, -label, -Risk_Category) %>%
+  group_by(label, Risk_Category) %>%
+  summarize(countAssault = sum(Value)) %>%
+  ungroup() %>%
+  group_by(label) %>%
+  mutate(Pcnt_of_test_set_crimes = countAssault / sum(countAssault)) %>%
+    ggplot(aes(Risk_Category,Pcnt_of_test_set_crimes)) +
+      geom_bar(aes(fill=label), position="dodge", stat="identity") +
+      scale_fill_viridis(discrete = TRUE, name = "Model") +
+      labs(title = "Risk prediction vs. Kernel density, 2018 assaults",
+           y = "% of Test Set Assaults (per model)",
+           x = "Risk Category") +
+  theme_bw() +
+      theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
+```
+The bars show how closely the predictions match the real data, with differences indicating the accuracy of the risk prediction model. The maps and graphs indicate that the model can identify areas where assaults are more likely to occur, which implies that it has learned from the historical data effectively. By forecasting potential hotspots for criminal activity, the model could be a valuable tool for allocating police resources more efficiently, potentially preventing crime and increasing public safety.
+
+The disparities between the kernel density and risk predictions raise questions about the model's precision. It's critical to ensure the model doesn't contribute to over-policing or bias against certain communities, which can happen if historical data reflects systemic inequalities or if the model hasn't been thoroughly validated against diverse datasets. Until the model is proven to be reliable, fair, and beneficial to the broader community, it's important to approach its full-scale implementation with a degree of caution.
