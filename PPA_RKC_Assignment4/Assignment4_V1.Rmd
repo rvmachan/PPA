@@ -23,7 +23,7 @@ Recidivism is a concept to study in a data-driven approach. MAP obtained a datas
 
 The models that are created to predict recidivism can either prioritize specificity or sensitivity. Specificity is the ability of a test to correctly identify true negatives. In this case, a true negative would be that Marie Antoinette Predictions predicts that recidivism will not occur, but it will. A high specificity model indicates that there is a low rate of false positives. Sensitivity is the ability of a test to correctly identify true positives. A high sensitivity model indicates that that there is a low rate of false negatives; for recidivism, this means that the model correctly identifies individuals who will be convicted of another crime after previously being incarcerated. There are benefits and drawbacks to both high sensitivities and specificities, but there usually cannot be both. In either case, there will be a group of individuals who in prediction are mis-classified. What kind of error will Governor Brian Kemp accept in reforming Georgia's criminal justice system?
 
-```{r load_packages, warning = FALSE}
+```{r load_packages, warning = FALSE, include = FALSE}
 options(scipen=10000000)
 
 
@@ -35,7 +35,7 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 
 ```
 
-```{r load_data, cache = TRUE}
+```{r load_data, cache = TRUE, include = FALSE}
 palette5 <- c("#981FAC","#CB0F8B","#FF006A","#FE4C35","#FE9900")
 palette4 <- c("#981FAC","#FF006A","#FE4C35","#FE9900")
 palette2 <- c("#981FAC","#FF006A")
@@ -82,7 +82,7 @@ rDivism <-
 
 # Exploring our model's components
 
-```{r exploratory_continuous}
+```{r exploratory_continuous, results = 'hide'}
 rDivism %>%
   dplyr::select(gender,gang_affiliated, age_at_release, education_level, prison_offense, prison_years, recidivism_within_3years) %>%
   gather(Variable, value, -recidivism_within_3years) %>%
@@ -96,7 +96,7 @@ rDivism %>%
       theme(legend.position = "none")
 ```
 
-```{r exploratory_continuous_density, message = FALSE, warning = FALSE}
+```{r exploratory_continuous_density, message = FALSE, warning = FALSE, results = 'hide'}
 rDivism %>%
     dplyr::select(gender,gang_affiliated, age_at_release, education_level, prison_offense, prison_years, recidivism_within_3years) %>%
     gather(Variable, value, -recidivism_within_3years) %>%
@@ -124,7 +124,6 @@ rDivism %>%
 ```
 
 ```{r country_variables, cache = TRUE}
-
 rDivism <- 
   rDivism %>% 
   group_by(prison_offense) %>% 
@@ -149,7 +148,7 @@ Our logistic regression model predicts a binary outcome. For Brian Kemp, that me
 
 When running the model, the depending variable is called 'rDivismNumeric' which is the binary outcome of recidivism instead of a TRUE/FALSE outcome. 
 
-```{r create_partition}
+```{r create_partition, results = 'hide'}
 set.seed(3456)
 
 rDivism$rDivismNumeric <-
@@ -160,11 +159,9 @@ trainIndex <- createDataPartition(rDivism$recidivism_within_3years, p = 0.50, #s
                                   times = 1)
 rDivismTrain <- rDivism[ trainIndex,]
 rDivismTest  <- rDivism[-trainIndex,]
-
-
 ```
 
-```{r run_model}
+```{r run_model, results = 'hide'}
 #not working and idk why - confused about the glm part
 rDivismModel <- glm(rDivismNumeric ~ ., #glm is generalized linear model, taking in the defaults
                     data=rDivismTrain %>% 
@@ -175,7 +172,7 @@ rDivismModel <- glm(rDivismNumeric ~ ., #glm is generalized linear model, taking
 summary(rDivismModel)
 ```
 
-```{r second_model}
+```{r second_model, results = 'hide'}
 rDivismModel2 <- glm(rDivismNumeric ~ .,
                   data=rDivismTrain %>% dplyr::select(-prison_offense, -prison_years, -gender, -race, -education_level),
                   family="binomial" (link="logit"))
@@ -184,7 +181,7 @@ summary(rDivismModel2)
 
 ```
 
-```{r fit_metrics}
+```{r fit_metrics, results = 'hide'}
 
 pR2(rDivismModel2) #McFadden is pseudo R squared
 
@@ -405,7 +402,7 @@ whichThreshold %>%
 
 * Model finding 1
 
-* Model finding 2
+* This model should be used with caution. While it may be able to predict recidivism, it might highlight 
 
 * Models like this one are dangerous to use in the criminal justice system. While it is important to use data-drive approaches to understand phenomenon in our system, this model is not in-depth enough to catch nuances of why or how someone becomes part of the recidivism category.
 * The criminal justice system is ultimately very flawed, as prison re-entry programs very state by state. This model does not account for re-entry, which is a large part of the statistics regarding recidivism.
@@ -415,4 +412,3 @@ whichThreshold %>%
 
 * There is no benefit to keeping incarcerated people in prison past when is needed for the goal of cutting costs. Prison systems should be focused on rehabilitation instead of predicting future crime - while there are predictors of recidivism that could be generally accurate, re-entry programs can change the rate of recidivism.  
 
-Lasting impressions.............................
