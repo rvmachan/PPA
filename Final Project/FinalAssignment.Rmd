@@ -26,20 +26,10 @@ Goals for the project are:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
 
-library(tidyverse)
-library(sf)
-library(RSocrata)
-library(viridis)
-library(spatstat)
-library(raster)
-library(spdep)
-library(FNN)
-library(grid)
-library(gridExtra)
-library(knitr)
-library(kableExtra)
-library(tidycensus)
-library(classInt)   # for KDE and ML risk class intervals
+
+if(!require(pacman)){install.packages("pacman"); library(pacman)}
+p_load(sf, tidyverse, tidycensus, RSocrata, viridis, spatstat, raster, spdep, FNN, grid, gridExtra, knitr, kableExtra, classInt)
+
 # functions
 root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
 source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
@@ -51,23 +41,161 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 This uses the Socrata package for some data sets. I am bringing in assault data for this assignment.
 
 ```{r read_data}
-# Read and process police districts data
-policeDistricts <- 
-  st_read("https://data.cityofchicago.org/api/geospatial/fthy-xz3r?method=export&format=GeoJSON") %>%
-  st_transform('ESRI:102271') %>%  # Transform coordinate reference system
-  dplyr::select(District = dist_num)  # Select only the district number, renaming it to 'District'
 
-# Read and process police beats data
-policeBeats <- 
-  st_read("https://data.cityofchicago.org/api/geospatial/aerh-rz74?method=export&format=GeoJSON") %>%
-  st_transform('ESRI:102271') %>%  # Transform coordinate reference system
-  dplyr::select(District = beat_num)  # Select only the beat number, renaming it to 'District'
+phlPermits <- 
+  st_read("https://phl.carto.com/api/v2/sql?q=SELECT+*+FROM+permits+WHERE+permitissuedate+>=+'2013-01-01'+AND+permitissuedate+<+'2022-12-31'&filename=permits&format=geojson&skipfields=cartodb_id") %>% 
+    st_transform('ESRI:102728')%>%
+  mutate(Legend = "Philadelphia Permits")%>%
+  mutate(Year = as.integer(format(permitissuedate, "%Y"))) 
 
-# Combine police districts and beats data into one dataframe
-bothPoliceUnits <- rbind(
-  mutate(policeDistricts, Legend = "Police Districts"),  # Add a 'Legend' column and label for police districts
-  mutate(policeBeats, Legend = "Police Beats")  # Add a 'Legend' column and label for police beats
-)
+## 2. Philadelphia Boundaries
+phlBoundary <- 
+  st_read("http://data.phl.opendata.arcgis.com/datasets/405ec3da942d4e20869d4e1449a2be48_0.geojson") %>%
+  st_transform('ESRI:102728')
+
+#dunno if we need to fishnet this
+phlFishnet <- 
+  st_make_grid(phlBoundary,
+               cellsize = 500, 
+               square = TRUE) %>%
+  .[phlBoundary] %>% 
+  st_sf() %>%
+  mutate(uniqueID = rownames(.))
+
+## 3. Philadelphia Neighborhoods
+phillyNeighborhoods <-
+  st_read("https://raw.githubusercontent.com/azavea/geo-data/master/Neighborhoods_Philadelphia/Neighborhoods_Philadelphia.geojson") %>%
+  st_transform('ESRI:102728') %>%
+  st_transform(st_crs(phlFishnet)) 
+
+## 4. Vacant Property
+vacantBuilding <-
+  st_read('https://opendata.arcgis.com/datasets/f7ed68293c5e40d58f1de9c8435c3e84_0.geojson') %>% 
+  na.omit() %>%
+  st_transform('ESRI:102728') %>%
+  st_transform(st_crs(philFishnet)) %>%
+  mutate(Legend = "Vacant Buildings")
+
+## 5. Affordable Housing
+affordableHousing <-
+  st_read('https://opendata.arcgis.com/datasets/ca8944190b604b2aae7eff17c8dd9ef5_0.geojson') %>% 
+  filter(FISCAL_YEAR_COMPLETE <= "2022" && FISCAL_YEAR_COMPLETE >= "2012") %>%
+  st_transform('ESRI:102728') %>%
+  st_transform(st_crs(phlFishnet)) %>%
+  mutate(Legend = "Affordable Housing")
+
+
+## 7. Green Spaces
+greenSpace <-
+  st_read('https://opendata.arcgis.com/datasets/d52445160ab14380a673e5849203eb64_0.geojson') %>% 
+  st_transform('ESRI:102728') %>%
+  st_transform(st_crs(phlFishnet)) %>%
+  mutate(Legend = "Green Spaces")
+
+
+## 10. Demolition Data
+buildingDemolition <-
+  st_read('https://phl.carto.com/api/v2/sql?q=SELECT+*+FROM+demolitions&filename=demolitions&format=geojson&skipfields=cartodb_id') %>% 
+  mutate(year = substr(start_date,1,4)) %>%
+  filter(year == '2022') %>%
+  st_transform('ESRI:102728') %>%
+  st_transform(st_crs(phillyFishnet)) %>%
+  mutate(Legend = "Building Demolition") 
+
+## 11. Census data - ACS 2021
+tracts22 <- get_acs(
+  geography = "tract",
+  variables = c(
+    "B01003_001",   # Total Population
+    "B19013_001",   # Median Household Income
+    "B25008_001E",  # Total Population in Housing Units
+    "B25008_002",   # Owner-Occupied Units
+    "B25008_003",   # Renter-Occupied Units
+    "B15003_022",   # Educational Attainment: Bachelor's Degree
+    "B06012_002E",  # Population Below the Poverty Level
+    "B02001_002",   # Race and Ethnicity: White Alone
+    "B02001_003",   # Race and Ethnicity: Black or African American Alone
+    "B27011_008E",  # Population Unemployed
+    "B08105F_007E"  # Population Working from Home
+    
+  ),
+  year = 2022,
+  state = "PA",
+  county = "Philadelphia",
+  geometry = TRUE,
+  output = "wide"
+)%>%
+  dplyr::select(-NAME, -ends_with("M")) %>%
+  rename(TotalPop = B01003_001E,                           # Total Population
+         MedHHInc = B19013_001E,                           # Median Household Income
+         TotalUnit = B25008_001E,                          # Total Population in Housing Units
+         OwnerOccupied = B25008_002E,                      # Owner-Occupied Units
+         RenterOccupied = B25008_003E,                     # Renter-Occupied Units
+         BachelorsDegree = B15003_022E,                    # Educational Attainment: Bachelor's Degree
+         TotalPoverty = B06012_002E,                       # Population Below the Poverty Level
+         TotalUnemployment = B27011_008E,                  # Population Unemployed
+         TotalWFH = B08105F_007E,                          # Population Working from Home
+         RaceWhite = B02001_002E,                          # Race and Ethnicity: White Alone
+         RaceBlack = B02001_003E,                          # Race and Ethnicity: Black or African American Alone
+         )
+
+### 11.1. Transform the data to ESRI:102728 projection
+
+tracts22 <- tracts22 %>% st_transform(st_crs(phillyFishnet))
+
+### 11.2 Create new variables
+
+tracts22 <- tracts22 %>%
+  mutate(pctWhite = ifelse(TotalPop > 0, RaceWhite / TotalPop * 100,0),
+         pctBlack = ifelse(TotalPop > 0, RaceBlack / TotalPop * 100,0),
+         pctPoverty = ifelse(TotalPop > 0, TotalPoverty / TotalPop *100, 0),
+         pctUnemploy = ifelse(TotalPop > 0, TotalUnemployment / TotalPop *100, 0),
+         pctWFH = ifelse(TotalPop > 0, TotalWFH / TotalPop *100, 0),
+         pctBach = ifelse(TotalPop > 0, BachelorsDegree / TotalPop *100, 0),
+         pctOwnerOccupied = ifelse(TotalPop > 0, OwnerOccupied / TotalUnit *100, 0),
+         pctRenterOccupied = ifelse(TotalPop > 0, RenterOccupied / TotalUnit *100, 0)
+         ) %>%
+  dplyr::select(-RaceWhite, -RaceBlack, -TotalPoverty ,-TotalUnemployment,-OwnerOccupied, -RenterOccupied, -TotalUnit, -TotalWFH, -BachelorsDegree, -GEOID) %>%
+  st_transform(st_crs(phillyFishnet)) 
+
+### 11.3 Organize into datasets
+
+tracts21.MedHHInc <- tracts22 %>%
+  dplyr::select(MedHHInc) %>%
+  rename(Legend = MedHHInc)
+
+tracts21.pctWhite <- tracts22 %>%
+  dplyr::select(pctWhite)%>%
+  rename(Legend = pctWhite)
+
+tracts21.pctBlack <- tracts22 %>%
+  dplyr::select(pctBlack)%>%
+  rename(Legend = pctBlack)
+
+tracts21.pctPoverty <- tracts22 %>%
+  dplyr::select(pctPoverty)%>%
+  rename(Legend = pctPoverty)
+
+tracts21.pctUnemploy <- tracts22 %>%
+  dplyr::select(pctUnemploy)%>%
+  rename(Legend = pctUnemploy)
+
+tracts21.pctBach <- tracts22 %>%
+   dplyr::select(pctBach)%>%
+   rename(Legend = pctBach)
+
+tracts21.pctWFH <- tracts22 %>%
+  dplyr::select(pctWFH)%>%
+  rename(Legend = pctWFH)
+
+tracts21.pctOwnerOccupied <- tracts22 %>%
+  dplyr::select(pctOwnerOccupied)%>%
+  rename(Legend = pctOwnerOccupied)
+
+tracts21.pctRenterOccupied <- tracts22 %>%
+  dplyr::select(pctRenterOccupied)%>%
+  rename(Legend = pctRenterOccupied)
+
 ```
 
 ```{r police data}
