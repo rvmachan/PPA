@@ -399,7 +399,7 @@ whichThreshold %>%
 
 # Conclusion
 
-* Model finding 1
+* *Model finding 1 - still need to have information here*
 
 * This model should be used with caution. While it may be able to predict recidivism, it might highlight 
 
