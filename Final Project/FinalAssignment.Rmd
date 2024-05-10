@@ -28,7 +28,7 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
 
 
 if(!require(pacman)){install.packages("pacman"); library(pacman)}
-p_load(sf, tidyverse, tidycensus, RSocrata, viridis, spatstat, raster, spdep, FNN, grid, gridExtra, knitr, kableExtra, classInt)
+p_load(sf, tidyverse, tidycensus, RSocrata, viridis, spatstat, raster, spdep, FNN, grid, gridExtra, knitr, kableExtra, classInt, RColorBrewer)
 
 # functions
 root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
@@ -62,7 +62,7 @@ phlFishnet <-
   st_sf() %>%
   mutate(uniqueID = rownames(.))
 
-## 3. Philadelphia Neighborhoods
+## 3. Philadelphia Neighborhoods - isn't loading
 phillyNeighborhoods <-
   st_read("https://raw.githubusercontent.com/azavea/geo-data/master/Neighborhoods_Philadelphia/Neighborhoods_Philadelphia.geojson") %>%
   st_transform('ESRI:102728') %>%
@@ -158,7 +158,7 @@ tracts22 <- tracts22 %>%
   dplyr::select(-RaceWhite, -RaceBlack, -TotalPoverty ,-TotalUnemployment,-OwnerOccupied, -RenterOccupied, -TotalUnit, -TotalWFH, -BachelorsDegree, -GEOID) %>%
   st_transform(st_crs(phillyFishnet)) 
 
-### 11.3 Organize into datasets
+### 11.3 Organize into datasets - what is this whole organization part for??
 
 tracts21.MedHHInc <- tracts22 %>%
   dplyr::select(MedHHInc) %>%
@@ -199,22 +199,22 @@ tracts21.pctRenterOccupied <- tracts22 %>%
 ```
 
 ```{r police data}
-# Read and process assault data
-assault <- 
-  read.socrata("https://data.cityofchicago.org/Public-Safety/Crimes-2017/d62x-nvdr") %>% 
-  filter(Primary.Type == "ASSAULT") %>%  # Filter assault data
-  mutate(x = gsub("[()]", "", Location)) %>%  # Clean location data
-  separate(x, into = c("Y", "X"), sep = ",") %>%  # Separate X and Y coordinates
-  mutate(X = as.numeric(X), Y = as.numeric(Y)) %>%  # Convert coordinates to numeric
-  na.omit() %>%  # Remove rows with missing values
-  st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%  # Convert to sf object with specified CRS
-  st_transform('ESRI:102271') %>%  # Transform coordinate reference system
-  distinct()  # Keep only distinct geometries
+#Data Cleaning!
 
-# Read and process Chicago boundary data
-chicagoBoundary <- 
-  st_read(file.path(root.dir, "/Chapter5/chicagoBoundary.geojson")) %>%  # Read Chicago boundary data
-  st_transform('ESRI:102271')  # Transform coordinate reference system
+#Categorizing the permits for construction and demolition
+phlPermits <- phlPermits %>%
+  mutate(newType = case_when(permittype == "BUILDING" | permittype == "BP_NEWCNST"  ~ 'CONSTRUCTION PERMIT',
+  permittype == "DEMOLITION" | permittype == "BP_DEMO" ~ 'DEMOLITION PERMIT'))
+
+
+cnstPermits <- phlPermits %>%
+  filter(newType == 'CONSTRUCTION PERMIT')
+
+demoPermits <- phlPermits %>%
+  filter(newType == 'DEMOLITION PERMIT')
+
+
+
 
 ```
 
@@ -223,28 +223,59 @@ chicagoBoundary <-
 Here I'm plotting point data and density. These areas are indicated by denser clusters of red points (individual incidents) on the left and warmer colors on the density plot on the right, suggesting a higher concentration of assault crimes.
 
 ```{r fig.width=6, fig.height=4}
-# Uses grid.arrange to organize independent plots
-grid.arrange(
-  ncol = 2,
+# Uses grid.arrange to organize independent plots - do we need this?
+
+  # Plot 1: map of all construction and demo permits issued b/w 2013 and 2022
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    geom_sf(data = phlPermits, aes(colour = newType), size = 0/5, show.legend = "point") +
+  scale_color_brewer(palette = "Dark2") +
+  labs(title = "Major Permits Issued, 2013-22 in Philadelphia",
+       caption = "Figure 1") +
+    theme_void()  
   
-  # Plot 1: Assault overlaid on Chicago boundary
+
+  # Plot 2 + 3: Mapped points and Density map of construction permits issued
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    geom_sf(data = cnstPermits, aes(colour = "darkgreen"), size = 0.5, show.legend = "point") + #why is the color literally orange???
+  labs(title = "Construction Permits Issued, 2013-22 in Philadelphia",
+       caption = "Figure 2") +
+    theme_void() 
+
+#grid.arrange( - idk what the grid arrange stuff is for
+ #ncol = 2,
   ggplot() + 
-    geom_sf(data = chicagoBoundary) +  # Add Chicago boundary
-    geom_sf(data = assault, colour = "red", size = 0.1, show.legend = "point") +  # Overlay assault crimes
-    labs(title = "Assault, Chicago - 2017") +  # Set plot title
-    theme_void(),  # Use a blank theme
-  
-  # Plot 2: Density of assault crimes with contours overlaid on Chicago boundary
-  ggplot() + 
-    geom_sf(data = chicagoBoundary, fill = "grey40") +  # Add Chicago boundary with grey fill
-    stat_density2d(data = data.frame(st_coordinates(assault)),  # Compute 2D kernel density estimate
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    stat_density2d(data = data.frame(st_coordinates(cnstPermits)),  
                    aes(X, Y, fill = ..level.., alpha = ..level..),  # Define aesthetics for density contours
                    size = 0.01, bins = 40, geom = 'polygon') +  # Set size and number of bins for contours
-    scale_fill_viridis() +  # Use Viridis color scale for fill
+    scale_fill_viridis_c(option = "plasma") +  # Use Viridis color scale for fill
     scale_alpha(range = c(0.00, 0.35), guide = FALSE) +  # Set transparency range for contours
-    labs(title = "Density of Assault crimes") +  # Set plot title
+    labs(title = "Density of Construction Permits") +  # Set plot title
     theme_void() + theme(legend.position = "none")  # Use a blank theme and remove legend
-)
+
+
+
+  #Plot 4 + 5: Mapped points and Density map of demolition permits issued
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    geom_sf(data = demoPermits, aes(colour = newType), size = 0/5, show.legend = "point") +
+  scale_color_brewer(palette = "Dark2") +
+  labs(title = "Demolition Permits Issued, 2013-22 in Philadelphia",
+       caption = "Figure 4") +
+    theme_void()
+
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    stat_density2d(data = data.frame(st_coordinates(demoPermits)),  
+                   aes(X, Y, fill = ..level.., alpha = ..level..),  # Define aesthetics for density contours
+                   size = 0.01, bins = 40, geom = 'polygon') +  # Set size and number of bins for contours
+    scale_fill_viridis_c(option = "plasma") +  # Use Viridis color scale for fill
+    scale_alpha(range = c(0.00, 0.35), guide = FALSE) +  # Set transparency range for contours
+    labs(title = "Density of Construction Permits") +  # Set plot title
+    theme_void() + theme(legend.position = "none")  # Use a blank theme and remove legend
+
 
 ```
 The maps seem to depict areas with higher incidences of assault, which could correspond to regions known for higher levels of crime like Homan Square, the South Side of Chicago and South Shore. The chances of becoming a victim of any type of crime in South Shore is 1 in 13, according to PropertyClub. Robbery and assault are common in these neighborhoods, and murder and gun violence are much higher than the national average. 
