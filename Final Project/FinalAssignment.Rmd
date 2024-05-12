@@ -1,7 +1,7 @@
 ---
-title: 'Assignment 3: Predictive Policing'
-author: "KRC change 2"
-date: "04/14/2024"
+title: 'Final: Measuring Gentrification'
+author: "Kamya Khandelwal, Revathi Machan, Claudia Schreier"
+date: "05/13/2024"
 output:
   html_document:
     toc: true
@@ -11,17 +11,6 @@ output:
     theme: journal  
 ---
 
-I'm going to run through the code base with a few variables in the model.
-
-Goals for the project are:
-
-1. Learn how to build spatial variables in a raster-like grid called a "fishnet"
-
-2. Learn how to run local Moran's I as a measure of local clustering
-
-3. Run a poisson regression to predict events measured in counts
-
-4. Compare model performance to Kernal Density.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
@@ -36,12 +25,10 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 
 ```
 
-## Read in Data from Chicago
-
-This uses the Socrata package for some data sets. I am bringing in assault data for this assignment.
+## Read in Data from Philadelphia
 
 ```{r read_data}
-
+# permits
 phlPermits <- 
   st_read("https://phl.carto.com/api/v2/sql?q=SELECT+*+FROM+permits+WHERE+permitissuedate+>=+'2013-01-01'+AND+permitissuedate+<+'2022-12-31'&filename=permits&format=geojson&skipfields=cartodb_id") %>% 
     st_transform('ESRI:102728')%>%
@@ -63,23 +50,23 @@ phlFishnet <-
   mutate(uniqueID = rownames(.))
 
 ## 3. Philadelphia Neighborhoods - isn't loading
-phillyNeighborhoods <-
-  st_read("https://raw.githubusercontent.com/azavea/geo-data/master/Neighborhoods_Philadelphia/Neighborhoods_Philadelphia.geojson") %>%
-  st_transform('ESRI:102728') %>%
-  st_transform(st_crs(phlFishnet)) 
+#phillyNeighborhoods <-
+  #st_read("https://raw.githubusercontent.com/azavea/geo-data/master/Neighborhoods_Philadelphia/Neighborhoods_Philadelphia.geojson") %>%
+  #st_transform('ESRI:102728') %>%
+  #st_transform(st_crs(phlFishnet)) 
 
 ## 4. Vacant Property
 vacantBuilding <-
   st_read('https://opendata.arcgis.com/datasets/f7ed68293c5e40d58f1de9c8435c3e84_0.geojson') %>% 
   na.omit() %>%
   st_transform('ESRI:102728') %>%
-  st_transform(st_crs(philFishnet)) %>%
+  st_transform(st_crs(phlFishnet)) %>%
   mutate(Legend = "Vacant Buildings")
 
 ## 5. Affordable Housing
 affordableHousing <-
   st_read('https://opendata.arcgis.com/datasets/ca8944190b604b2aae7eff17c8dd9ef5_0.geojson') %>% 
-  filter(FISCAL_YEAR_COMPLETE <= "2022" && FISCAL_YEAR_COMPLETE >= "2012") %>%
+  filter(FISCAL_YEAR_COMPLETE >= "2012") %>%
   st_transform('ESRI:102728') %>%
   st_transform(st_crs(phlFishnet)) %>%
   mutate(Legend = "Affordable Housing")
@@ -99,7 +86,7 @@ buildingDemolition <-
   mutate(year = substr(start_date,1,4)) %>%
   filter(year == '2022') %>%
   st_transform('ESRI:102728') %>%
-  st_transform(st_crs(phillyFishnet)) %>%
+  st_transform(st_crs(phlFishnet)) %>%
   mutate(Legend = "Building Demolition") 
 
 ## 11. Census data - ACS 2021
@@ -141,7 +128,7 @@ tracts22 <- get_acs(
 
 ### 11.1. Transform the data to ESRI:102728 projection
 
-tracts22 <- tracts22 %>% st_transform(st_crs(phillyFishnet))
+tracts22 <- tracts22 %>% st_transform(st_crs(phlFishnet))
 
 ### 11.2 Create new variables
 
@@ -156,7 +143,7 @@ tracts22 <- tracts22 %>%
          pctRenterOccupied = ifelse(TotalPop > 0, RenterOccupied / TotalUnit *100, 0)
          ) %>%
   dplyr::select(-RaceWhite, -RaceBlack, -TotalPoverty ,-TotalUnemployment,-OwnerOccupied, -RenterOccupied, -TotalUnit, -TotalWFH, -BachelorsDegree, -GEOID) %>%
-  st_transform(st_crs(phillyFishnet)) 
+  st_transform(st_crs(phlFishnet)) 
 
 ### 11.3 Organize into datasets - what is this whole organization part for??
 
@@ -277,24 +264,16 @@ ggplot() +
     theme_void() + theme(legend.position = "none")  # Use a blank theme and remove legend
 
 
+# plot 6: affordable housing
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    geom_sf(data = affordableHousing, aes(colour = 'darkgreen'), size = 1, show.legend = "point") +
+  scale_color_brewer(palette = "Dark2") +
+  labs(title = "Affordable Housing Developments, 2012-19 in Philadelphia",
+       caption = "Figure 6") +
+    theme_void()
 ```
 The maps seem to depict areas with higher incidences of assault, which could correspond to regions known for higher levels of crime like Homan Square, the South Side of Chicago and South Shore. The chances of becoming a victim of any type of crime in South Shore is 1 in 13, according to PropertyClub. Robbery and assault are common in these neighborhoods, and murder and gun violence are much higher than the national average. 
-
-## Creating a fishnet grid
-
-I'm using sf package to create the grid and using the boundary to clip the grid to the data.
-
-```{r fishnet}
-## using {sf} to create the grid
-## Note the `.[chicagoBoundary] %>% ` line. This is needed to clip the grid to our data
-fishnet <- 
-st_make_grid(chicagoBoundary,
-               cellsize = 500, 
-               square = TRUE) %>%
-  .[chicagoBoundary] %>%            # fast way to select intersecting polygons
-  st_sf() %>%   mutate(uniqueID = 1:n())
-
-```
 
 ### Aggregate points to the fishnet
 
