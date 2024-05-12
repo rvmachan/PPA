@@ -252,16 +252,6 @@ this would include the model accuracy and the error, summary stats by race, and 
 # EVERYTHING HIGHLIGHTED SHOULD BE THE WAY TO GO ITS JUST NOT WORKING
 ######
 
-#rDivism <- rDivism %>%
- # mutate(numeric_recidivism_within_3years = rDivism$recidivism_within_3years)
-
-#rDivismTest$recidivism_within_3years[rDivismTest$recidivism_within_3years == "TRUE"] <- 1
-#rDivismTest$recidivism_within_3years[rDivismTest$recidivism_within_3years == "FALSE"] <- 0
-#rDivismTest$recidivism_within_3years <- as.integer(rDivismTest$recidivism_within_3years)
-
-# Convert 'recidivism_within_3years' to numeric
-#rDivism$RD <- as.numeric(as.character(rDivism$recidivism_within_3years))
-
 # Define train control
 ctrl <- trainControl(method = "cv", number = 100, classProbs = TRUE, summaryFunction = twoClassSummary)
 
@@ -284,8 +274,8 @@ rDivism$recidivism_within_3years <- factor(rDivism$recidivism_within_3years)
 levels(rDivism$recidivism_within_3years) <- make.names(levels(rDivism$recidivism_within_3years))
 
 #new
-#rDivismTest$recidivism_within_3years <- factor(rDivismTest$recidivism_within_3years)
-#levels(rDivismTest$recidivism_within_3years) <- make.names(levels(rDivismTest$recidivism_within_3years))
+rDivismTest$recidivism_within_3years <- factor(rDivismTest$recidivism_within_3years)
+levels(rDivismTest$recidivism_within_3years) <- make.names(levels(rDivismTest$recidivism_within_3years))
 
 #names(rDivismTest)[names(rDivismTest) == "Probs"] <- "classProbs"
 
