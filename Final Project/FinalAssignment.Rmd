@@ -25,6 +25,48 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 
 ```
 
+```{r - map theme - ideally we replace this later}
+mapTheme <- function(base_size = 12) {
+  theme(
+    text = element_text( color = "black"),
+    plot.title = element_text(size = 15,colour = "black"),
+    plot.subtitle=element_text(face="italic"),
+    plot.caption=element_text(hjust=0),
+    axis.ticks = element_blank(),
+    panel.background = element_blank(),axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(colour = "black", fill=NA, size=2),
+    strip.text.x = element_text(size = 14))
+}
+
+plotTheme <- function(base_size = 12) {
+  theme(
+    text = element_text( color = "black"),
+    plot.title = element_text(color = "darkred", size=15, face="bold"),
+    plot.subtitle = element_text(face="italic"),
+    plot.caption = element_text(hjust=0),
+    axis.ticks = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major = element_line("grey80", size = 0.1),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(colour = "black", fill=NA, size=2),
+    strip.background = element_rect(fill = "grey80", color = "white"),
+    strip.text = element_text(size=12),
+    axis.title = element_text(size=12),
+    axis.text = element_text(size=10),
+    plot.background = element_blank(),
+    legend.background = element_blank(),
+    legend.title = element_text(colour = "black", face = "italic"),
+    legend.text = element_text(colour = "black", face = "italic"),
+    strip.text.x = element_text(size = 14)
+  )
+}
+```
+
+
 ## Read in Data from Philadelphia
 
 ```{r read_data}
@@ -272,90 +314,88 @@ ggplot() +
   labs(title = "Affordable Housing Developments, 2012-19 in Philadelphia",
        caption = "Figure 6") +
     theme_void()
+
+
+#plot7: home values
+
+#plot8: vacant land 
+
+#plot9: vacant land
+
+#plot10: demographic
+ggplot()+
+    geom_sf(data=tracts22, aes(color=NA, fill=pctUnemploy))+
+    scale_color_viridis()+
+    scale_fill_viridis()+
+    geom_sf(data = cnstPermits, aes(color="#FE9900") ,
+          show.legend = "point", size = .1, alpha=0.3) +
+    scale_color_identity() +
+    labs(title="% Unemployment around Permits Issued")+
+    mapTheme()+theme(plot.title = element_text(size = 10), legend.title=element_blank())
+
+ggplot()+
+    geom_sf(data=tracts22, aes(color=NA, fill=pctBach))+
+    scale_color_viridis()+
+    scale_fill_viridis()+
+    geom_sf(data = cnstPermits, aes(color="#FE9900") ,
+          show.legend = "point", size = .1, alpha=0.3) +
+    scale_color_identity() +
+    labs(title="% Population with Bachelor's Degree around Permits Issued")
+
 ```
 The maps seem to depict areas with higher incidences of assault, which could correspond to regions known for higher levels of crime like Homan Square, the South Side of Chicago and South Shore. The chances of becoming a victim of any type of crime in South Shore is 1 in 13, according to PropertyClub. Robbery and assault are common in these neighborhoods, and murder and gun violence are much higher than the national average. 
 
 ### Aggregate points to the fishnet
 
-```{r spatialjoin}
-## add a value of 1 to each crime, sum them with aggregate
-crime_net <- 
-  dplyr::select(assault) %>% 
-  mutate(countAssault = 1) %>% 
-  aggregate(., fishnet, sum) %>%
-  mutate(countAssault = replace_na(countAssault, 0),
-         uniqueID = 1:n(),
-         cvID = sample(round(nrow(fishnet) / 24), 
-                       size=nrow(fishnet), replace = TRUE))
-
-ggplot() +
-  geom_sf(data = crime_net, aes(fill = countAssault), color = NA) +
-  scale_fill_viridis("Count of Assault") +
-  labs(title = "Count of Assault for the fishnet") +
-  theme_void()
-
-```
-
-## Modeling Spatial Features
-
-I pulled in a single variable for the model to keep it simple. I looked at alley lights out data in relation to assault crime because poorly lit areas may have a higher incidence of such incidents, suggesting a possible correlation between street lighting and public safety.
-
-```{r addpredictor}
-## only pulling a single variable for our model to keep it simple
-## using Socrata again
-# Read the dataset of alley lights out 311 service requests from the City of Chicago
-lightsout <- 
-  read.socrata("https://data.cityofchicago.org/Service-Requests/311-Service-Requests-Alley-Lights-Out-Historical/t28b-ys7j") %>%
-    # Extract the year from the creation date and filter for the year 2017
-    mutate(year = substr(creation_date, 1, 4)) %>% filter(year == "2017") %>%
-    # Select latitude and longitude columns and remove rows with missing values
-    dplyr::select(Y = latitude, X = longitude) %>%
-    na.omit() %>%
-    # Convert to simple feature (sf) object with geographic coordinates
-    st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
-    # Transform coordinates to match the coordinate reference system (CRS) of the fishnet
-    st_transform(st_crs(fishnet)) %>%
-    # Add a legend label indicating abandoned cars
-    mutate(Legend = "lights_out")
-
-# Read neighborhood boundaries for Chicago and transform to match fishnet CRS
-neighborhoods <- 
-  st_read("https://raw.githubusercontent.com/blackmad/neighborhoods/master/chicago.geojson") %>%
-  st_transform(st_crs(fishnet))
+```{r fishnet}
 
 
-```
-### Alley lights out overlaid on Chicago neighborhooods
 
-```{r plot2}
-  # Plot 2: Alley lights out overlaid on Chicago neighborhooods
-  ggplot() + 
-    geom_sf(data = neighborhoods) +  # Add Chicago boundary
-    geom_sf(data = lightsout, colour = "red", size = 0.1, show.legend = "point") +  
-    labs(title = "Alley Lights Out, Chicago - 2017") +  # Set plot title
-    theme_void()  # Use a blank theme
-```
+# Attaching datasets on spatial factors to Fishnet
+
+## 1. Extracting geometry for spatial factors
 
 
-#### Aggregating features to our fishnet
+affordableHousings <- affordableHousing %>%
+  dplyr::select(geometry, Legend)
 
-The overall objective here was to assign the fishnet ID to each lights out point, group the points by fishnet ID and count them per ID, join that count back to the fishnet and then go from a long format to a wide format.
+vacantBuildings <- vacantBuilding %>%
+  dplyr::select(geometry, Legend)
 
+greenSpaces <- greenSpace %>%
+  dplyr::select(geometry, Legend)
 
-```{r jointofishnet}
-
-# Join the alley lights out data with the fishnet grid based on spatial intersection
-vars_net <- lightsout %>%  # Start with the alley lights out data
-  st_join(fishnet, join = st_within) %>%  # Perform spatial join with fishnet grid, keeping only points within grid cells
-  st_drop_geometry() %>%  # Drop geometry column (no longer needed after joining)
-  group_by(uniqueID, Legend) %>%  # Group data by uniqueID and Legend (e.g., lights_out)
-  summarize(count = n()) %>%  # Calculate count of points within each group (grid cell)
-  left_join(fishnet, ., by = "uniqueID") %>%  # Left join fishnet grid with summarized counts, using uniqueID as key
-  spread(Legend, count, fill = 0) %>%  # Spread Legend values into separate columns, filling missing values with 0
-  dplyr::select(-`<NA>`) %>%  # Remove columns with NAs (generated during spreading)
-  ungroup()  # Ungroup the data frame (remove grouping structure)
+buildingDemolitions <- buildingDemolition %>%
+  dplyr::select(geometry, Legend)
 
 
+## 2. Creating fishnet of spatial factor variables 
+
+vars_net <- 
+  rbind(affordableHousings, vacantBuildings,
+        greenSpaces, buildingDemolitions) %>%
+  st_join(., phlFishnet, join=st_within) %>%
+  st_drop_geometry() %>%
+  group_by(uniqueID, Legend) %>%
+  summarize(count = n()) %>%
+  full_join(phlFishnet, by = "uniqueID") %>%
+  spread(Legend, count, fill=0) %>%
+  st_sf() %>%
+  na.omit() %>% 
+  dplyr::select(-`<NA>`) %>%
+  ungroup()
+
+
+cnstPermits <- st_transform(cnstPermits, st_crs(phlFishnet))
+
+construction_net <- 
+  dplyr::select(cnstPermits) %>% 
+  mutate(countPermits = 1) %>% 
+  aggregate(., phlFishnet, sum) %>%
+  mutate(countPermits = replace_na(countPermits, 0),
+         uniqueID = rownames(.),
+         cvID = sample(round(nrow(phlFishnet) / 24), 
+                       size=nrow(phlFishnet), replace = TRUE))
 ```
 
 ## Nearest Neighbor Feature
@@ -363,42 +403,135 @@ vars_net <- lightsout %>%  # Start with the alley lights out data
 This code calculates the nearest neighbors (NN) of alley lights out data to the centroids of fishnet grid cells. It first defines two convenience aliases st_c and st_coid for st_coordinates and st_centroid functions, respectively, to reduce the length of function names. Then, it creates a new column named lightsout.nn in the vars_net dataframe using a custom nn_function. This function finds the nearest neighbors of the centroids of fishnet grid cells to the alley lights out locations, considering the 3 closest neighbors (k = 3).
 
 ```{r knn}
-# Convenience aliases to reduce the length of function names
-st_c    <- st_coordinates  # Alias for st_coordinates function
-st_coid <- st_centroid     # Alias for st_centroid function
 
-# Create nearest neighbor (NN) relationship from alley lights out data to fishnet grid cells
-vars_net <- vars_net %>%  # Start with the summarized variables data
-    mutate(lightsout.nn = nn_function(  # Create a new column for nearest neighbor information
-        st_c(st_coid(vars_net)),  # Calculate centroids of fishnet grid cells
-        st_c(lightsout),         # Get coordinates of abandoned cars
-        k = 3                      # Number of nearest neighbors to find
-    ))
+## 1.2. Vacant Buildings
+
+### Mapping nearest feature
+
+nearest_vacantBuilding <- sf::st_nearest_feature(vars_net, vacantBuilding)
+
+### Converting to rsgeo geometries
+
+x <- rsgeo::as_rsgeo(vars_net)
+y <- rsgeo::as_rsgeo(vacantBuilding)
+
+### Calculating distance
+
+vars_net$dist_vacantBuilding <- rsgeo::distance_euclidean_pairwise(x, y[nearest_vacantBuilding])
+
+
+## 1.3. Affordable Housing
+
+### Mapping nearest feature
+
+nearest_affordableHousing <- sf::st_nearest_feature(vars_net, affordableHousing)
+
+### Converting to rsgeo geometries
+
+x <- rsgeo::as_rsgeo(vars_net)
+y <- rsgeo::as_rsgeo(affordableHousing)
+
+### Calculating distance
+
+vars_net$dist_affordableHousing <- rsgeo::distance_euclidean_pairwise(x, y[nearest_affordableHousing])
+
+
+## 1.4. Green Spaces
+
+### Mapping nearest feature
+
+nearest_greenSpace <- sf::st_nearest_feature(vars_net, greenSpace)
+
+### Converting to rsgeo geometries
+
+x <- rsgeo::as_rsgeo(vars_net)
+y <- rsgeo::as_rsgeo(greenSpace)
+
+### Calculating distance
+
+vars_net$dist_greenSpace <- rsgeo::distance_euclidean_pairwise(x, y[nearest_greenSpace])
+
+## 1.8. Building Demolitions
+
+### Mapping nearest feature
+
+nearest_buildingDemolition <- sf::st_nearest_feature(vars_net, buildingDemolition)
+
+### Converting to rsgeo geometries
+
+x <- rsgeo::as_rsgeo(vars_net)
+y <- rsgeo::as_rsgeo(buildingDemolition)
+
+### Calculating distance
+
+vars_net$dist_buildingDemolition <- rsgeo::distance_euclidean_pairwise(x, y[nearest_buildingDemolition])
+
 
 ```
 
 
 ```{r vizNN}
-## Visualize the NN feature
-vars_net.long.nn <- 
-  dplyr::select(vars_net, ends_with(".nn")) %>%
-    gather(Variable, value, -geometry)
+# 2. Visualizing nearest distance for spatial factors on Fishnet
 
-ggplot() +
-      geom_sf(data = vars_net.long.nn, aes(fill=value), colour=NA) +
-      scale_fill_viridis(name="NN Distance") +
-      labs(title="Alley Lights Out NN Distance") +
-      theme_void()
+## 2.1. Visualizing the nearest three features
+
+vars_net.long.nn <- 
+  dplyr::select(vars_net, starts_with("dist")) %>%
+  gather(Variable, value, -geometry)
+
+vars <- unique(vars_net.long.nn$Variable)
+mapList <- list()
+
+for(i in vars){
+  mapList[[i]] <- 
+    ggplot() +
+    geom_sf(data = filter(vars_net.long.nn, Variable == i), aes(fill=value), colour=NA) +
+    scale_fill_viridis_c(option = "plasma",
+                         name = " ") +
+    labs(title=i) +
+    mapTheme()+
+    theme(plot.title = element_text(size = 12, color = "black"))
+  }
+
+bottomCaption <- textGrob("Figure 8", gp = gpar(hjust = 0))
+
+do.call(grid.arrange, c(list(grobs = mapList, ncol = 2, 
+                             top = textGrob("Spatial Factors: Nearest Neighbor Distance for Permits Issued\n", 
+                                            gp = gpar(fontsize = 15, fontface = "bold", col = "darkred")), 
+                             bottom = bottomCaption)))
+
 ```
 
 ## Join NN feature to our fishnet
 
 Since the counts were aggregated to each cell by `uniqueID` we can use that to join the counts to the fishnet.
 
-```{r}
-## important to drop the geometry from joining features
+```{r join census data to fishnet - not sure why this is necessary}
+# Joining Census Data to Fishnet
+
+tracts22 <- tracts22 %>%
+  filter(TotalPop>0)
+
+vars_net <-
+  vars_net%>%
+  st_centroid()%>%
+  st_join(tracts22)
+
+library(dplyr)
+vars_net <- vars_net %>% mutate_all(~replace(., is.na(.), 0))
+
+# Perform Spatial Join of variables with permits
+
 final_net <-
-  left_join(crime_net, st_drop_geometry(vars_net), by="uniqueID") 
+  left_join(construction_net, st_drop_geometry(vars_net), by="uniqueID") # this one doesn't work so the last one won't either
+
+# Final Net
+
+final_net <-
+  st_centroid(final_net) %>% 
+      st_join(dplyr::select(final_net, geometry, uniqueID)) %>%  
+      st_sf() %>%
+  na.omit()
 
 ```
 
