@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
 
 
 if(!require(pacman)){install.packages("pacman"); library(pacman)}
-p_load(sf, tidyverse, tidycensus, RSocrata, viridis, spatstat, raster, spdep, FNN, grid, gridExtra, knitr, kableExtra, classInt, RColorBrewer)
+p_load(sf, tidyverse, tidycensus, RSocrata, viridis, spatstat, raster, spdep, FNN, grid, gridExtra, knitr, kableExtra, classInt, RColorBrewer, ggcorrplot)
 
 # functions
 root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
@@ -92,10 +92,10 @@ phlFishnet <-
   mutate(uniqueID = rownames(.))
 
 ## 3. Philadelphia Neighborhoods - isn't loading
-#phillyNeighborhoods <-
-  #st_read("https://raw.githubusercontent.com/azavea/geo-data/master/Neighborhoods_Philadelphia/Neighborhoods_Philadelphia.geojson") %>%
-  #st_transform('ESRI:102728') %>%
-  #st_transform(st_crs(phlFishnet)) 
+phillyNeighborhoods <-
+  st_read("https://raw.githubusercontent.com/opendataphilly/open-geo-data/master/philadelphia-neighborhoods/philadelphia-neighborhoods.geojson") %>%
+  st_transform('ESRI:102728') %>%
+  st_transform(st_crs(phlFishnet)) 
 
 ## 4. Vacant Property
 vacantBuilding <-
@@ -527,32 +527,17 @@ final_net <-
 
 # Final Net
 
+
 final_net <-
   st_centroid(final_net) %>% 
-      st_join(dplyr::select(final_net, geometry, uniqueID)) %>%  
-      st_sf() %>%
-  na.omit()
-
-```
-
-### Join in areal data
-
-Using spatial joins to join *centroids* of fishnets to polygon for neighborhoods and districts.
-
-```{r areal data}
-
-final_net <-
-  st_centroid(final_net) %>%
-    st_join(dplyr::select(neighborhoods, name), by = "uniqueID") %>%
-    st_join(dplyr::select(policeDistricts, District), by = "uniqueID") %>%
+    st_join(dplyr::select(phillyNeighborhoods, name), by = "uniqueID") %>% 
       st_drop_geometry() %>%
-      left_join(dplyr::select(final_net, geometry, uniqueID)) %>%
+      left_join(dplyr::select(final_net, geometry, uniqueID)) %>%  
       st_sf() %>%
   na.omit()
-
-# for live demo
-# mapview::mapview(final_net, zcol = "District")
 ```
+
+
 
 ## Local Moran's I for fishnet grid cells
 
@@ -570,14 +555,14 @@ final_net.weights <- nb2listw(final_net.nb, style="W", zero.policy=TRUE)
 
 ```{r local moran}
 ## see ?localmoran
-local_morans <- localmoran(final_net$lightsout, final_net.weights, zero.policy=TRUE) %>% 
+local_morans <- localmoran(final_net$countPermits, final_net.weights, zero.policy=TRUE) %>% 
   as.data.frame()
 
 # join local Moran's I results to fishnet
 final_net.localMorans <- 
   cbind(local_morans, as.data.frame(final_net)) %>% 
   st_sf() %>%
-  dplyr::select(lightsout_count = lightsout.nn, 
+  dplyr::select(Permit_Count = countPermits, 
                 Local_Morans_I = Ii, 
                 P_Value = `Pr(z != E(Ii))`) %>%
   mutate(Significant_Hotspots = ifelse((P_Value <= 0.05), 1, 0)) %>%
@@ -615,19 +600,19 @@ The chart suggests a positive spatial autocorrelation for alley lights out incid
 
 ```{r lmi_hotspot}
 
-lmoran <- localmoran(final_net$lightsout, final_net.weights,  zero.policy=TRUE)
+#lmoran <- localmoran(final_net$lightsout, final_net.weights,  zero.policy=TRUE)
 
-final_net$lmI <- lmoran[, "Ii"] # local Moran's I
-final_net$lmZ <- lmoran[, "Z.Ii"] # z-scores
-final_net$lmp <- lmoran[, "Pr(z != E(Ii))"]
+#final_net$lmI <- lmoran[, "Ii"] # local Moran's I
+#final_net$lmZ <- lmoran[, "Z.Ii"] # z-scores
+#final_net$lmp <- lmoran[, "Pr(z != E(Ii))"]
 
 
-mp <- moran.plot(as.vector(scale(final_net$lightsout)), final_net.weights, zero.policy = TRUE)
+#mp <- moran.plot(as.vector(scale(final_net$lightsout)), final_net.weights, zero.policy = TRUE)
 
 ##Create a hotspot variable:
-final_net$lmp <- ifelse(is.nan(final_net$lmp), 0.10, final_net$lmp)
-final_net$hotspot <- 0
-final_net[(mp$x >=0 & mp$wx >=0) & final_net$lmp <= 0.05, "hotspot"]<- 1
+#final_net$lmp <- ifelse(is.nan(final_net$lmp), 0.10, final_net$lmp)
+#final_net$hotspot <- 0
+#final_net[(mp$x >=0 & mp$wx >=0) & final_net$lmp <= 0.05, "hotspot"]<- 1
 ```
 
 Now we will calculate distance to that nearest hotspot.
@@ -635,12 +620,12 @@ Now we will calculate distance to that nearest hotspot.
 
 ```{r}
 # generates warning from NN
-final_net <- final_net %>% 
-  mutate(lightsout.isSig.dist = 
-           nn_function(st_c(st_coid(final_net)),
-                       st_c(st_coid(filter(final_net, 
-                                           hotspot == 1))), 
-                       k = 1))
+#final_net <- final_net %>% 
+  #mutate(lightsout.isSig.dist = 
+           #nn_function(st_c(st_coid(final_net)),
+                       #st_c(st_coid(filter(final_net, 
+                                      #     hotspot == 1))), 
+#                       k = 1))
 
 ```
 
@@ -649,37 +634,106 @@ final_net <- final_net %>%
 Lighter areas represent locations with the longest distances to the nearest reported alley light outage, suggesting lower spatial density of such reports.
 
 ```{r}
-ggplot() +
-      geom_sf(data = final_net, aes(fill=lightsout.isSig.dist), colour=NA) +
-      scale_fill_viridis(name="NN Distance") +
-      labs(title="Alley Lights Out NN Distance") +
-      theme_void()
+#ggplot() +
+#      geom_sf(data = final_net, aes(fill=lightsout.isSig.dist), colour=NA) +
+#      scale_fill_viridis(name="NN Distance") +
+#      labs(title="Alley Lights Out NN Distance") +
+#      theme_void()
 ```
 
 ## Modeling and CV
 
+```{r - correlation tests for spatial and demographic factors}
+
+correlation.long <-
+  st_drop_geometry(final_net) %>%
+    dplyr::select(-uniqueID, -cvID, -name) %>%
+    gather(Variable, Value, -countPermits) %>%
+  mutate(Value = as.numeric(Value))
+
+correlation.cor <-
+  correlation.long %>%
+    group_by(Variable) %>%
+    summarize(correlation = cor(Value, countPermits, use = "complete.obs"))
+
+# Visualizing correlations through scatter plots
+#we have a lot of demographic variables here that i don't know if we necessarily need or are interested in keeping for our final stuff - think it may be better to pick and choose fewer demo variables and maybe choose more external variables
+    
+ggplot(correlation.long, aes(Value, countPermits)) +
+  geom_point(size = 0.1) +
+  geom_text(data = correlation.cor, aes(label = paste("r =", round(correlation, 2))),
+            x=-Inf, y=Inf, vjust = 1.5, hjust = -.1) +
+  geom_smooth(method = "lm", se = FALSE, colour = "orange") +
+  facet_wrap(~Variable, ncol = 4, scales = "free") +
+  labs(title = "Permit Count as a function of risk factors", caption="Figure 12") +
+  plotTheme()
+
+```
+
+
+```{r - correlation matrix}
+
+numvars <- c("countPermits", "dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "TotalPop", "MedHHInc", "pctWhite", "pctBlack", "pctBach" ,"pctPoverty", "pctUnemploy", "pctWFH", "pctOwnerOccupied", "pctRenterOccupied")
+
+numeric <- final_net %>%
+  st_drop_geometry(final_net) %>%
+  dplyr::select(numvars)%>%
+  na.omit()
+
+ggcorrplot(
+  round(cor(numeric), 1), 
+  p.mat = cor_pmat(numeric),
+  colors = c('#d7191c','white','#2c7bb6'),
+  type="lower",
+  insig = "blank") +  
+    labs(title = "Correlation across Variables\n", caption="Figure 13")+ 
+    theme(plot.title = element_text(size = 11, face = "bold", color = "darkred"))+
+    theme(axis.text.x=element_text(size=8))+
+    theme(axis.text.y=element_text(size=8))
+
+```
+
+
+
+
+
+
+##Regression
+
 ```{r results='hide'}
 
-# View(crossValidate)
+#View(crossValidate)
 
 ## define the variables we want
-reg.ss.vars <- c("lightsout.nn", "lightsout.isSig.dist")
+reg.ss.vars <- c("countPermits", "dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "TotalPop", "MedHHInc", "pctWhite", "pctBlack", "pctBach" ,"pctPoverty", "pctUnemploy", "pctWFH", "pctOwnerOccupied", "pctRenterOccupied")
 
-## RUN REGRESSIONS
+
+
+## RUN REGRESSIONS - neither are working
+final_net$name <- ifelse(is.na(final_net$name), "UNKNOWN", final_net$name)
+
+reg.ss.cv <- crossValidate(
+  dataset = final_net,
+  id = "cvID",
+  dependentVariable = "countPermits",
+  indVariables = reg.ss.vars) %>%
+    dplyr::select(cvID = cvID, countPermits, Prediction, geometry)
+
+
 reg.ss.spatialCV <- crossValidate(
   dataset = final_net,
-  id = "name",                           
-  dependentVariable = "countAssault",
+  id = "name",                        
+  dependentVariable = "countPermits",
   indVariables = reg.ss.vars) %>%
-    dplyr::select(cvID = name, countAssault, Prediction, geometry)
+    dplyr::select(cvID = name, countPermits, Prediction, geometry)
 ```
 
 ```{r}
 # calculate errors by NEIGHBORHOOD
 error_by_reg_and_fold <- 
-  reg.ss.spatialCV %>%
+  reg.ss.spatialCV %>% #this reg doesn't work to run the rest of the code
     group_by(cvID) %>% 
-    summarize(Mean_Error = mean(Prediction - countAssault, na.rm = T),
+    summarize(Mean_Error = mean(Prediction - countPermit, na.rm = T),
               MAE = mean(abs(Mean_Error), na.rm = T),
               SD_MAE = mean(abs(Mean_Error), na.rm = T)) %>%
   ungroup()
@@ -705,18 +759,18 @@ The `spatstat` function gets us kernal density estimates with varying search rad
 
 ```{r kd}
 # demo of kernel width
-as_ppp <- as.ppp(st_coordinates(assault), W = st_bbox(final_net))
-as_KD.1000 <- density.ppp(as_ppp, 1000)
-as_KD.1500 <- density.ppp(as_ppp, 1500)
-as_KD.2000 <-density.ppp(as_ppp, 2000)
-as_KD.df <- rbind(
-  mutate(data.frame(rasterToPoints(mask(raster(as_KD.1000), as(neighborhoods, 'Spatial')))), Legend = "1000 Ft."),
-  mutate(data.frame(rasterToPoints(mask(raster(as_KD.1500), as(neighborhoods, 'Spatial')))), Legend = "1500 Ft."),
-  mutate(data.frame(rasterToPoints(mask(raster(as_KD.2000), as(neighborhoods, 'Spatial')))), Legend = "2000 Ft.")) 
+permits_ppp <- as.ppp(st_coordinates(cnstPermits), W = st_bbox(final_net))
+permits_KD.1000 <- density.ppp(permits_ppp, 1000)
+permits_KD.1500 <- density.ppp(permits_ppp, 1500)
+permits_KD.2000 <-density.ppp(permits_ppp, 2000)
+permits_KD.df <- rbind(
+  mutate(data.frame(rasterToPoints(mask(raster(permits_KD.1000), as(phillyNeighborhoods, 'Spatial')))), Legend = "1000 Ft."),
+  mutate(data.frame(rasterToPoints(mask(raster(permits_KD.1500), as(phillyNeighborhoods, 'Spatial')))), Legend = "1500 Ft."),
+  mutate(data.frame(rasterToPoints(mask(raster(permits_KD.2000), as(phillyNeighborhoods, 'Spatial')))), Legend = "2000 Ft.")) 
 
-as_KD.df$Legend <- factor(as_KD.df$Legend, levels = c("1000 Ft.", "1500 Ft.", "2000 Ft."))
+permits_KD.df$Legend <- factor(permits_KD.df$Legend, levels = c("1000 Ft.", "1500 Ft.", "2000 Ft."))
 
-ggplot(data=as_KD.df, aes(x=x, y=y)) +
+ggplot(data=permits_KD.df, aes(x=x, y=y)) +
   geom_raster(aes(fill=layer)) + 
   facet_wrap(~Legend) +
   coord_sf(crs=st_crs(final_net)) + 
@@ -728,18 +782,20 @@ Areas with higher concentrations of assault incidents are indicated by warmer co
 
 ```{r kd2}
 
-as.data.frame(as_KD.1000) %>%
+#works but i dont think is needed unless there's one specific tihng we wanna look at 
+
+as.data.frame(permits_KD.1000) %>%
   st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
   aggregate(., final_net, mean) %>%
    ggplot() +
      geom_sf(aes(fill=value)) +
-     geom_sf(data = sample_n(assault, 1500), size = .5) +
+     geom_sf(data = sample_n(cnstPermits, 1500), size = .5) +
      scale_fill_viridis(name = "Density") +
-     labs(title = "Kernel density of 2017 assault") +
+     labs(title = "Kernel density of Construction Permits") +
      theme_void()
 ```
 
-## Getting 2018 crime data
+## Getting Chicago city data
 
 Let's see how our model performed relative to KD on the following year's data.
 
@@ -840,3 +896,5 @@ rbind(as_KDE_sf, as_risk_sf) %>%
 The bars show how closely the predictions match the real data, with differences indicating the accuracy of the risk prediction model. The maps and graphs indicate that the model can identify areas where assaults are more likely to occur, which implies that it has learned from the historical data effectively. By forecasting potential hotspots for criminal activity, the model could be a valuable tool for allocating police resources more efficiently, potentially preventing crime and increasing public safety.
 
 The disparities between the kernel density and risk predictions raise questions about the model's precision. It's critical to ensure the model doesn't contribute to over-policing or bias against certain communities, which can happen if historical data reflects systemic inequalities or if the model hasn't been thoroughly validated against diverse datasets. Until the model is proven to be reliable, fair, and beneficial to the broader community, it's important to approach its full-scale implementation with a degree of caution.
+
+
