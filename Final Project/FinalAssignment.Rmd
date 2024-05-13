@@ -5,8 +5,7 @@ output:
     toc_float: true
     code_folding: hide
     code_download: true
-    prettydoc::html_pretty:
-      theme: architect
+    theme: journal
 ---
  
  
@@ -258,15 +257,14 @@ demoPermits <- phlPermits %>%
 
 The data was visualized using mapping tools. The area from around Center City to lower North Philadelphia and Kensington has the densest amount of construction permits and demolition permits. There is a high density of vacant buildings in West and North Philadelphia.
 
-<<<<<<< Updated upstream
+
 ```{r fig.width=6, fig.height=4, message = FALSE, warning = FALSE}
 # Uses grid.arrange to organize independent plots - do we need this?
 =======
 Here I'm plotting point data and density. These areas are indicated by denser clusters of red points (individual incidents) on the left and warmer colors on the density plot on the right, suggesting a higher concentration of assault crimes.
+```
 
 ```{r fig.width=6, fig.height=4}
->>>>>>> Stashed changes
-
   # Plot 1: map of all construction and demo permits issued b/w 2013 and 2022
 ggplot() + 
     geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
