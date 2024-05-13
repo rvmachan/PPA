@@ -378,15 +378,11 @@ ggplot()+
 
 ```
 
-<<<<<<< Updated upstream
 ```{r fishnet, results = 'hide', warning = FALSE, message = FALSE}
-
-=======
 
 ### Aggregate points to the fishnet
 
-```{r fishnet}
->>>>>>> Stashed changes
+
 # Attaching datasets on spatial factors to Fishnet
 
 ## 1. Extracting geometry for spatial factors
@@ -758,6 +754,7 @@ final_net$name <- ifelse(is.na(final_net$name), "UNKNOWN", final_net$name)
 #    labs(title="Distribution of MAE", subtitle = "LOGO-CV",
  #        x="Mean Absolute Error", y="Count") 
 ```
+
 It seems that the prediction model's accuracy varies across different neighborhoods, with some areas showing larger errors than others. 
 
 
@@ -884,14 +881,22 @@ We don't do quite as well because we don't have very many features, but still pr
 
 ## Conclusion
 
-This model can be used to inform planning decisions that are carried out by the Office of Innovation and Technology and the Smart Cities office. 
+**input some sort of result about the model**
+
+This model can be used to inform planning decisions that will be carried out by the Office of Innovation and Technology and the Smart Cities office. While it can be a useful tool, it should be used in tandem with other tools to predict and plan for gentrification in different neighborhoods. The staff at Marie Antoinette Predictions chose variables that were possibly predictors of gentrification, but we did not account for everything that could affect and become a predictor for gentrification. The existence and disappearance of civic assets like schools, libraries, green spaces, and public spaces could be markers of possible gentrification that are not tied to the data used in the model. 
+
+Additionally, there are different situations and nuances of displacement that cannot be captured in the data. Predicting the order and timeline displacement is a further challenge that OIT and the Smart Cities office could tackle. Direct displacement, or the phenomenon of when residents can no longer afford to live in their homes because of rising costs, would occur first with the proposals and new constructions and other types of permits^8^. Indirect displacement occurs when higher income residents move into an area when lower income residents move out. This can be captured through census data, in the median income or income bracket breakdown, to see the financial landscape of the neighborhood change^9^. Finally, there is cultural displacement that occurs when civic assets change. Shops change to focus their customer base on new people, and it broadly feels like the neighborhood has transformed^10^. A model that can track a neighborhood using data throughout these phases is one that should be used by the city to identify gentrification. 
+
 
 ## References
 
-1. https://whyy.org/articles/philadelphia-americas-poorest-big-city-poverty/
-2. https://www.pewtrusts.org/-/media/assets/2020/09/phillyhousingreport.pdf
-3. Ibid.
-4. https://whyy.org/articles/philadelphia-affordable-housing-bills-council-gauthier/
-5. https://sites.utexas.edu/gentrificationproject/understanding-gentrification-and-displacement/
-6. https://hai.stanford.edu/news/spotting-visual-signs-gentrification-scale
-7. https://opendataphilly.org/
+1.  https://whyy.org/articles/philadelphia-americas-poorest-big-city-poverty/
+2.  https://www.pewtrusts.org/-/media/assets/2020/09/phillyhousingreport.pdf
+3.  Ibid.
+4.  https://whyy.org/articles/philadelphia-affordable-housing-bills-council-gauthier/
+5.  https://sites.utexas.edu/gentrificationproject/understanding-gentrification-and-displacement/
+6.  https://hai.stanford.edu/news/spotting-visual-signs-gentrification-scale
+7.  https://opendataphilly.org/
+8.  https://sites.utexas.edu/gentrificationproject/understanding-gentrification-and-displacement/
+9.  Ibid.
+10. Ibid.
