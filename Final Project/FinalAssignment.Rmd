@@ -11,6 +11,23 @@ output:
     theme: journal  
 ---
 
+*TO:* Akshay Malik, City of Philadelphia Smart Cities Director
+*FROM:* Kamya Khandelwal, Revathi Machan, Claudia Schreier
+*DATE:* 13 May 2024
+*RE:* Predictive modeling for gentrification in Philadelphia
+
+## Gentrification in Phildelphia 
+
+Philadelphia has been experiencing a cost-of-living crisis for decades. For a city commonly referred to as the nation’s poorest largest city, there is much worry about the future of new developments and housing^1^. Philadelphia has the highest poverty rate out of the ten largest cities in the US. In 2018, around 231,000 Philadelphia households were cost-burdened, which is defined by the US Department of Housing and Urban Development as a situation when a household spends 30% or more of its income on housing costs, including rent, mortgage payments, utilities, insurance, and property taxes^2^. This problem is more severe for renters – among renters with incomes below $30,000 per year, 88% are cost-burdened and 68% are severely cost-burdened (spending more than 50% of income on housing)^3^.  
+
+With lots of cost-burdened householders, including homeowners and renters, in the city, it  seems that the fear  of displacement and gentrification in many neighborhoods is common. Historically high rents and mortgage rates, combined with unprecedented levels of new developments have spurred discussion around gentrification in the city^4^. Gentrification is defined as a type of neighborhood change where higher income residents replace lower income ones – housing costs rise, property values rise, and typically, long term residents get displaced^5^. Gentrification today is informed by a legacy of displacement that was spurred by ”redevelopment” and ”urban renewal” plans. Philadelphia was hit especially hard by this displacement in West Philadelphia with university expansion plans throughout the second half of the 20th century.
+
+
+In broader discussions about gentrification online and in media, gentrification can seem like something that occurs when a brewery replaces a corner store, or a luxury gym replaces a single-family home. Gentrification can be marked by many things, and the signs can vary for different people that a neighborhood is being gentrified.  There has even been new technology like AI models created to identify signs of gentrification from temporal maps like Google Street View^6^. While the signs of gentrification can be visible, they may be hard to track through data. Researchers rely on demographic data to make conclusions about the types of change that the neighborhood is experiencing, like racial changes, age changes, and income changes.
+
+## Data exploration
+
+This project seeks to create a predictive model for gentrification that can be used in planning practice to identify areas at risk for gentrification or identify areas undergoing gentrification. This model uses factors that the team at Marie Antoinette Predictions have researched and believe are reliable markers for gentrification. The variables in our model are construction permits, vacant properties, affordable housing locations, green spaces, and demolitions. The data was collected from Philadelphia’s open data portal^7^.  After downloading the relevant data, it was cleaned to ensure that variables were clear and transferable. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
@@ -318,9 +335,24 @@ ggplot() +
 
 #plot7: home values
 
-#plot8: vacant land 
+#plot8 and 9: vacant land point and density maps
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    geom_sf(data = vacantBuilding, aes(colour = 'darkred'), size = 0/5, show.legend = "point") +
+  scale_color_brewer(palette = "Dark2") +
+  labs(title = "Suspected Vacant Buildings in Philadelphia",
+       caption = "Figure 8") +
+    theme_void()
 
-#plot9: vacant land
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    stat_density2d(data = data.frame(st_coordinates(vacantBuilding)),  
+                   aes(X, Y, fill = ..level.., alpha = ..level..),  # Define aesthetics for density contours
+                   size = 0.01, bins = 40, geom = 'polygon') +  # Set size and number of bins for contours
+    scale_fill_viridis_c(option = "plasma") +  # Use Viridis color scale for fill
+    scale_alpha(range = c(0.00, 0.35), guide = FALSE) +  # Set transparency range for contours
+    labs(title = "Density of Vacant Buldings") +  # Set plot title
+    theme_void() + theme(legend.position = "none")  # Use a blank theme and remove legend
 
 #plot10: demographic
 ggplot()+
@@ -343,7 +375,7 @@ ggplot()+
     labs(title="% Population with Bachelor's Degree around Permits Issued")
 
 ```
-The maps seem to depict areas with higher incidences of assault, which could correspond to regions known for higher levels of crime like Homan Square, the South Side of Chicago and South Shore. The chances of becoming a victim of any type of crime in South Shore is 1 in 13, according to PropertyClub. Robbery and assault are common in these neighborhoods, and murder and gun violence are much higher than the national average. 
+
 
 ### Aggregate points to the fishnet
 
@@ -591,7 +623,7 @@ for(i in vars){
       labs(title=i) +
       theme_void() + theme(legend.position="bottom")}
 
-do.call(grid.arrange,c(varList, ncol = 4, top = "Local Morans I statistics, Assault"))
+do.call(grid.arrange,c(varList, ncol = 4, top = "Local Morans I Statistics, Construction Permits"))
 ```
 
 Now, we need to actually find the clusters of high-high values that exist in the upper-right quadrant of a local moran's I plot. This plots the original values (lightsout) and the spatial lag of that value (wx), the average lights out value for each cells' neighboring cells. Not the scale function in front of lihgts out in the mp function. This places the values on a z-score so that the average value is 0 and positive values are above the mean (1= 1sd above the mean). A 'high' value technically means it is above the mean of the city. This code then looks for values of the cell that are above the mean and values of its neighborhs that are above the mean and only takes those that are statistically significant. We create a binary variable called 'hotspot' that meets these criteria.
@@ -717,7 +749,7 @@ reg.ss.cv <- crossValidate(
   id = "cvID",
   dependentVariable = "countPermits",
   indVariables = reg.ss.vars) %>%
-    dplyr::select(cvID = cvID, countPermits, Prediction, geometry)
+    dplyr::select(cvID = -cvID, -countPermits, Prediction, -geometry)
 
 
 reg.ss.spatialCV <- crossValidate(
@@ -893,8 +925,15 @@ rbind(as_KDE_sf, as_risk_sf) %>%
   theme_bw() +
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
 ```
-The bars show how closely the predictions match the real data, with differences indicating the accuracy of the risk prediction model. The maps and graphs indicate that the model can identify areas where assaults are more likely to occur, which implies that it has learned from the historical data effectively. By forecasting potential hotspots for criminal activity, the model could be a valuable tool for allocating police resources more efficiently, potentially preventing crime and increasing public safety.
 
-The disparities between the kernel density and risk predictions raise questions about the model's precision. It's critical to ensure the model doesn't contribute to over-policing or bias against certain communities, which can happen if historical data reflects systemic inequalities or if the model hasn't been thoroughly validated against diverse datasets. Until the model is proven to be reliable, fair, and beneficial to the broader community, it's important to approach its full-scale implementation with a degree of caution.
+## Conclusion
 
+## References
 
+1. https://whyy.org/articles/philadelphia-americas-poorest-big-city-poverty/
+2. https://www.pewtrusts.org/-/media/assets/2020/09/phillyhousingreport.pdf
+3. Ibid.
+4. https://whyy.org/articles/philadelphia-affordable-housing-bills-council-gauthier/
+5. https://sites.utexas.edu/gentrificationproject/understanding-gentrification-and-displacement/
+6. https://hai.stanford.edu/news/spotting-visual-signs-gentrification-scale
+7. https://opendataphilly.org/
