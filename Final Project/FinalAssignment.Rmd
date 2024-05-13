@@ -1,7 +1,4 @@
 ---
-title: 'Final: Measuring Gentrification'
-author: "Kamya Khandelwal, Revathi Machan, Claudia Schreier"
-date: "05/13/2024"
 output:
   html_document:
     toc: true
@@ -10,11 +7,15 @@ output:
     code_download: true
     theme: journal  
 ---
+ 
+ 
+**TO:** Akshay Malik, City of Philadelphia Smart Cities Director
 
-*TO:* Akshay Malik, City of Philadelphia Smart Cities Director
-*FROM:* Kamya Khandelwal, Revathi Machan, Claudia Schreier
-*DATE:* 13 May 2024
-*RE:* Predictive modeling for gentrification in Philadelphia
+**FROM:** Kamya Khandelwal, Revathi Machan, Claudia Schreier
+
+**DATE:** 13 May 2024
+
+**RE:** Predictive modeling for gentrification in Philadelphia
 
 ## Gentrification in Phildelphia 
 
@@ -22,12 +23,11 @@ Philadelphia has been experiencing a cost-of-living crisis for decades. For a ci
 
 With lots of cost-burdened householders, including homeowners and renters, in the city, it  seems that the fear  of displacement and gentrification in many neighborhoods is common. Historically high rents and mortgage rates, combined with unprecedented levels of new developments have spurred discussion around gentrification in the city^4^. Gentrification is defined as a type of neighborhood change where higher income residents replace lower income ones – housing costs rise, property values rise, and typically, long term residents get displaced^5^. Gentrification today is informed by a legacy of displacement that was spurred by ”redevelopment” and ”urban renewal” plans. Philadelphia was hit especially hard by this displacement in West Philadelphia with university expansion plans throughout the second half of the 20th century.
 
-
 In broader discussions about gentrification online and in media, gentrification can seem like something that occurs when a brewery replaces a corner store, or a luxury gym replaces a single-family home. Gentrification can be marked by many things, and the signs can vary for different people that a neighborhood is being gentrified.  There has even been new technology like AI models created to identify signs of gentrification from temporal maps like Google Street View^6^. While the signs of gentrification can be visible, they may be hard to track through data. Researchers rely on demographic data to make conclusions about the types of change that the neighborhood is experiencing, like racial changes, age changes, and income changes.
 
 ## Data exploration
 
-This project seeks to create a predictive model for gentrification that can be used in planning practice to identify areas at risk for gentrification or identify areas undergoing gentrification. This model uses factors that the team at Marie Antoinette Predictions have researched and believe are reliable markers for gentrification. The variables in our model are construction permits, vacant properties, affordable housing locations, green spaces, and demolitions. The data was collected from Philadelphia’s open data portal^7^.  After downloading the relevant data, it was cleaned to ensure that variables were clear and transferable. 
+This project seeks to create a predictive model for gentrification that can be used in planning practice to identify areas at risk for gentrification or identify areas undergoing gentrification. This model uses factors that the team at Marie Antoinette Predictions have researched and believe are reliable markers for gentrification. The variables in our model are construction permits, vacant properties, affordable housing locations, green spaces, and demolitions. The data was collected from Philadelphia’s open data portal^7^. After downloading the relevant data, it was cleaned to ensure that variables were clear and transferable. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
@@ -42,7 +42,7 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 
 ```
 
-```{r - map theme - ideally we replace this later}
+```{r - map theme - ideally we replace this later, include = FALSE}
 mapTheme <- function(base_size = 12) {
   theme(
     text = element_text( color = "black"),
@@ -84,9 +84,7 @@ plotTheme <- function(base_size = 12) {
 ```
 
 
-## Read in Data from Philadelphia
-
-```{r read_data}
+```{r read_data, results = 'hide', message = FALSE, warning = FALSE}
 # permits
 phlPermits <- 
   st_read("https://phl.carto.com/api/v2/sql?q=SELECT+*+FROM+permits+WHERE+permitissuedate+>=+'2013-01-01'+AND+permitissuedate+<+'2022-12-31'&filename=permits&format=geojson&skipfields=cartodb_id") %>% 
@@ -244,7 +242,7 @@ tracts21.pctRenterOccupied <- tracts22 %>%
 
 ```
 
-```{r police data}
+```{r police data, results = 'hide'}
 #Data Cleaning!
 
 #Categorizing the permits for construction and demolition
@@ -264,11 +262,9 @@ demoPermits <- phlPermits %>%
 
 ```
 
-## visualizing point data
+The data was visualized using mapping tools. The area from around Center City to lower North Philadelphia and Kensington has the densest amount of construction permits and demolition permits. There is a high density of vacant buildings in West and North Philadelphia.
 
-Here I'm plotting point data and density. These areas are indicated by denser clusters of red points (individual incidents) on the left and warmer colors on the density plot on the right, suggesting a higher concentration of assault crimes.
-
-```{r fig.width=6, fig.height=4}
+```{r fig.width=6, fig.height=4, message = FALSE, warning = FALSE}
 # Uses grid.arrange to organize independent plots - do we need this?
 
   # Plot 1: map of all construction and demo permits issued b/w 2013 and 2022
@@ -376,17 +372,11 @@ ggplot()+
 
 ```
 
-
-### Aggregate points to the fishnet
-
-```{r fishnet}
-
-
+```{r fishnet, results = 'hide', warning = FALSE, message = FALSE}
 
 # Attaching datasets on spatial factors to Fishnet
 
 ## 1. Extracting geometry for spatial factors
-
 
 affordableHousings <- affordableHousing %>%
   dplyr::select(geometry, Legend)
@@ -430,11 +420,8 @@ construction_net <-
                        size=nrow(phlFishnet), replace = TRUE))
 ```
 
-## Nearest Neighbor Feature
 
-This code calculates the nearest neighbors (NN) of alley lights out data to the centroids of fishnet grid cells. It first defines two convenience aliases st_c and st_coid for st_coordinates and st_centroid functions, respectively, to reduce the length of function names. Then, it creates a new column named lightsout.nn in the vars_net dataframe using a custom nn_function. This function finds the nearest neighbors of the centroids of fishnet grid cells to the alley lights out locations, considering the 3 closest neighbors (k = 3).
-
-```{r knn}
+```{r knn, results = 'hide', message = FALSE, warning = FALSE}
 
 ## 1.2. Vacant Buildings
 
@@ -502,7 +489,7 @@ vars_net$dist_buildingDemolition <- rsgeo::distance_euclidean_pairwise(x, y[near
 ```
 
 
-```{r vizNN}
+```{r vizNN, warning = FALSE, message = FALSE}
 # 2. Visualizing nearest distance for spatial factors on Fishnet
 
 ## 2.1. Visualizing the nearest three features
@@ -534,11 +521,7 @@ do.call(grid.arrange, c(list(grobs = mapList, ncol = 2,
 
 ```
 
-## Join NN feature to our fishnet
-
-Since the counts were aggregated to each cell by `uniqueID` we can use that to join the counts to the fishnet.
-
-```{r join census data to fishnet - not sure why this is necessary}
+```{r join census data to fishnet, results = 'hide', warning = FALSE, message = FALSE}
 # Joining Census Data to Fishnet
 
 tracts22 <- tracts22 %>%
@@ -571,11 +554,7 @@ final_net <-
 
 
 
-## Local Moran's I for fishnet grid cells
-
-Using {spdep} package to to build neighborhood weights and list to calculate local Moran's I.
-
-```{r}
+```{r final net, results = 'hide', warning = FALSE, message = FALSE}
 ## generates warnings from PROJ issues
 ## {spdep} to make polygon to neighborhoods... 
 final_net.nb <- poly2nb(as_Spatial(final_net), queen=TRUE)
@@ -585,7 +564,7 @@ final_net.weights <- nb2listw(final_net.nb, style="W", zero.policy=TRUE)
 # print(final_net.weights, zero.policy=TRUE)
 ```
 
-```{r local moran}
+```{r local moran, results = 'hide', message = FALSE, warning = FALSE}
 ## see ?localmoran
 local_morans <- localmoran(final_net$countPermits, final_net.weights, zero.policy=TRUE) %>% 
   as.data.frame()
@@ -602,14 +581,8 @@ final_net.localMorans <-
   
 ```
 
-### Plotting local Moran's I results
 
-This is a complex code chunk - it's a loop which builds ggplots of local Moran's for each of your `vars`.
-It is important to recognize that we can get high local moran's I values in the case of either high values near other high values or low values near other low values. If you check out the equation for LMI, you'll see that it is driven by a calulation for all pairs of neighbors, that looks at the (in this case) home values of one neighborhood minus the mean of all home values in the study, times home values of an adjacent neighborhood minus the mean. Therefore, since we multiply them together, two values below the mean will yield and positive value as well two values above the mean. In the code below, we examine the local moran's I value, the p-value, and extracts hotspots (that can be hot or cold!) based on the p-value.
-
-The maps show areas where high values cluster together (hotspots), areas of low value clustering (cold spots), and the significance of these clusters, indicating where these patterns are statistically meaningful.The significant hotspots in the South may be due to a combination of socio-economic factors, such as poverty, unemployment, and urban decay, which are historically linked to higher crime rates. Additionally, this area has been noted for gang activity which contributes to violence.
-
-```{r fig.width=10, fig.height=4}
+```{r fig.width=10, fig.height=4, warning = FALSE, message = FALSE}
 ## This is just for plotting
 vars <- unique(final_net.localMorans$Variable)
 varList <- list()
@@ -626,11 +599,7 @@ for(i in vars){
 do.call(grid.arrange,c(varList, ncol = 4, top = "Local Morans I Statistics, Construction Permits"))
 ```
 
-Now, we need to actually find the clusters of high-high values that exist in the upper-right quadrant of a local moran's I plot. This plots the original values (lightsout) and the spatial lag of that value (wx), the average lights out value for each cells' neighboring cells. Not the scale function in front of lihgts out in the mp function. This places the values on a z-score so that the average value is 0 and positive values are above the mean (1= 1sd above the mean). A 'high' value technically means it is above the mean of the city. This code then looks for values of the cell that are above the mean and values of its neighborhs that are above the mean and only takes those that are statistically significant. We create a binary variable called 'hotspot' that meets these criteria.
-
-The chart suggests a positive spatial autocorrelation for alley lights out incidents, as indicated by the clustering of data points along the line of fit. 
-
-```{r lmi_hotspot}
+```{r lmi_hotspot, results = 'hide', message = FALSE, warning = FALSE}
 
 #lmoran <- localmoran(final_net$lightsout, final_net.weights,  zero.policy=TRUE)
 
@@ -647,10 +616,9 @@ The chart suggests a positive spatial autocorrelation for alley lights out incid
 #final_net[(mp$x >=0 & mp$wx >=0) & final_net$lmp <= 0.05, "hotspot"]<- 1
 ```
 
-Now we will calculate distance to that nearest hotspot.
 
 
-```{r}
+```{r hotspot, results = 'hide', warning = FALSE, message = FALSE}
 # generates warning from NN
 #final_net <- final_net %>% 
   #mutate(lightsout.isSig.dist = 
@@ -661,11 +629,9 @@ Now we will calculate distance to that nearest hotspot.
 
 ```
 
-### Plot NN distance to hot spot
 
-Lighter areas represent locations with the longest distances to the nearest reported alley light outage, suggesting lower spatial density of such reports.
 
-```{r}
+```{r plotty, warning = FALSE, message = FALSE}
 #ggplot() +
 #      geom_sf(data = final_net, aes(fill=lightsout.isSig.dist), colour=NA) +
 #      scale_fill_viridis(name="NN Distance") +
@@ -673,9 +639,9 @@ Lighter areas represent locations with the longest distances to the nearest repo
 #      theme_void()
 ```
 
-## Modeling and CV
+## Building the model
 
-```{r - correlation tests for spatial and demographic factors}
+```{r CV, warning = FALSE, message = FALSE}
 
 correlation.long <-
   st_drop_geometry(final_net) %>%
@@ -703,7 +669,7 @@ ggplot(correlation.long, aes(Value, countPermits)) +
 ```
 
 
-```{r - correlation matrix}
+```{r correlation matrix, message = FALSE, warning = FALSE}
 
 numvars <- c("countPermits", "dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "TotalPop", "MedHHInc", "pctWhite", "pctBlack", "pctBach" ,"pctPoverty", "pctUnemploy", "pctWFH", "pctOwnerOccupied", "pctRenterOccupied")
 
@@ -730,66 +696,64 @@ ggcorrplot(
 
 
 
-##Regression
+## Model results
 
-```{r results='hide'}
+```{r regression, results='hide', warning = FALSE, message = FALSE}
 
 #View(crossValidate)
 
 ## define the variables we want
-reg.ss.vars <- c("countPermits", "dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "TotalPop", "MedHHInc", "pctWhite", "pctBlack", "pctBach" ,"pctPoverty", "pctUnemploy", "pctWFH", "pctOwnerOccupied", "pctRenterOccupied")
+#reg.ss.vars <- c("countPermits", "dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "TotalPop", "MedHHInc", "pctWhite", "pctBlack", "pctBach" ,"pctPoverty", "pctUnemploy", "pctWFH", "pctOwnerOccupied", "pctRenterOccupied")
 
 
 
 ## RUN REGRESSIONS - neither are working
 final_net$name <- ifelse(is.na(final_net$name), "UNKNOWN", final_net$name)
 
-reg.ss.cv <- crossValidate(
-  dataset = final_net,
-  id = "cvID",
-  dependentVariable = "countPermits",
-  indVariables = reg.ss.vars) %>%
-    dplyr::select(cvID = -cvID, -countPermits, Prediction, -geometry)
+#reg.ss.cv <- crossValidate(
+ # dataset = final_net,
+ # id = "cvID",
+ # dependentVariable = "countPermits",
+ # indVariables = reg.ss.vars) %>%
+  #  dplyr::select(cvID = -cvID, -countPermits, Prediction, -geometry)
 
 
-reg.ss.spatialCV <- crossValidate(
-  dataset = final_net,
-  id = "name",                        
-  dependentVariable = "countPermits",
-  indVariables = reg.ss.vars) %>%
-    dplyr::select(cvID = name, countPermits, Prediction, geometry)
+#reg.ss.spatialCV <- crossValidate(
+#  dataset = final_net,
+#  id = "name",                        
+#  dependentVariable = "countPermits",
+#  indVariables = reg.ss.vars) %>%
+ #   dplyr::select(cvID = name, countPermits, Prediction, geometry)
 ```
 
-```{r}
+```{r error, results = 'hide', warning = FALSE, message = FALSE}
 # calculate errors by NEIGHBORHOOD
-error_by_reg_and_fold <- 
-  reg.ss.spatialCV %>% #this reg doesn't work to run the rest of the code
-    group_by(cvID) %>% 
-    summarize(Mean_Error = mean(Prediction - countPermit, na.rm = T),
-              MAE = mean(abs(Mean_Error), na.rm = T),
-              SD_MAE = mean(abs(Mean_Error), na.rm = T)) %>%
-  ungroup()
+#error_by_reg_and_fold <- 
+ # reg.ss.spatialCV %>% #this reg doesn't work to run the rest of the code
+ #   group_by(cvID) %>% 
+  #  summarize(Mean_Error = mean(Prediction - countPermit, na.rm = T),
+      #        MAE = mean(abs(Mean_Error), na.rm = T),
+      #        SD_MAE = mean(abs(Mean_Error), na.rm = T)) %>%
+  #ungroup()
 
-error_by_reg_and_fold %>% 
-  arrange(desc(MAE))
-error_by_reg_and_fold %>% 
-  arrange(MAE)
+#error_by_reg_and_fold %>% 
+#  arrange(desc(MAE))
+#error_by_reg_and_fold %>% 
+ # arrange(MAE)
 
 ## plot histogram of OOF (out of fold) errors
-error_by_reg_and_fold %>%
-  ggplot(aes(MAE)) + 
-    geom_histogram(bins = 30, colour="black", fill = "#FDE725FF") +
-  scale_x_continuous(breaks = seq(0, 11, by = 1)) + 
-    labs(title="Distribution of MAE", subtitle = "LOGO-CV",
-         x="Mean Absolute Error", y="Count") 
+#error_by_reg_and_fold %>%
+#  ggplot(aes(MAE)) + 
+#    geom_histogram(bins = 30, colour="black", fill = "#FDE725FF") +
+#  scale_x_continuous(breaks = seq(0, 11, by = 1)) + 
+#    labs(title="Distribution of MAE", subtitle = "LOGO-CV",
+ #        x="Mean Absolute Error", y="Count") 
 ```
 It seems that the prediction model's accuracy varies across different neighborhoods, with some areas showing larger errors than others. 
 
-## Density vs predictions
 
-The `spatstat` function gets us kernal density estimates with varying search radii.
 
-```{r kd}
+```{r kernel density, message = FALSE, warning = FALSE}
 # demo of kernel width
 permits_ppp <- as.ppp(st_coordinates(cnstPermits), W = st_bbox(final_net))
 permits_KD.1000 <- density.ppp(permits_ppp, 1000)
@@ -810,9 +774,10 @@ ggplot(data=permits_KD.df, aes(x=x, y=y)) +
   labs(title = "Kernel density with 3 different search radii") +
   theme_void()
 ```
-Areas with higher concentrations of assault incidents are indicated by warmer colors, showing where such crimes were most prevalent in the city.
 
-```{r kd2}
+
+
+```{r kdConstruction, warning = FALSE, message = FALSE}
 
 #works but i dont think is needed unless there's one specific tihng we wanna look at 
 
@@ -827,106 +792,90 @@ as.data.frame(permits_KD.1000) %>%
      theme_void()
 ```
 
-## Getting Chicago city data
+## Validating for a different time / city
 
-Let's see how our model performed relative to KD on the following year's data.
+```{r new, results = 'hide', message = FALSE, warning = FALSE}
 
-```{r 2018 data}
-assault18 <- 
-  read.socrata("https://data.cityofchicago.org/Public-Safety/Crimes-2018/3i3m-jwuy") %>% 
-  filter(Primary.Type == "ASSAULT") %>%
-  mutate(x = gsub("[()]", "", Location)) %>%
-  separate(x,into= c("Y","X"), sep=",") %>%
-  mutate(X = as.numeric(X),
-         Y = as.numeric(Y)) %>% 
-  na.omit %>%
-  st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
-  st_transform('ESRI:102271') %>% 
-  distinct() %>%
-  .[fishnet,]
+#as_KDE_sum <- as.data.frame(as_KD.1000) %>%
+#  st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
+#  aggregate(., final_net, mean) 
+#kde_breaks <- classIntervals(as_KDE_sum$value, 
+#                             n = 5, "fisher")
+#as_KDE_sf <- as_KDE_sum %>%
+#  mutate(label = "Kernel Density",
+#         Risk_Category = classInt::findCols(kde_breaks),
+#         Risk_Category = case_when(
+#           Risk_Category == 5 ~ "5th",
+#           Risk_Category == 4 ~ "4th",
+#           Risk_Category == 3 ~ "3rd",
+#           Risk_Category == 2 ~ "2nd",
+#           Risk_Category == 1 ~ "1st")) %>%
+#  cbind(
+#    aggregate(
+#      dplyr::select(assault18) %>% mutate(asCount = 1), ., sum) %>%
+#    mutate(asCount = replace_na(asCount, 0))) %>%
+#  dplyr::select(label, Risk_Category, asCount)
 ```
 
-```{r new}
-
-as_KDE_sum <- as.data.frame(as_KD.1000) %>%
-  st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
-  aggregate(., final_net, mean) 
-kde_breaks <- classIntervals(as_KDE_sum$value, 
-                             n = 5, "fisher")
-as_KDE_sf <- as_KDE_sum %>%
-  mutate(label = "Kernel Density",
-         Risk_Category = classInt::findCols(kde_breaks),
-         Risk_Category = case_when(
-           Risk_Category == 5 ~ "5th",
-           Risk_Category == 4 ~ "4th",
-           Risk_Category == 3 ~ "3rd",
-           Risk_Category == 2 ~ "2nd",
-           Risk_Category == 1 ~ "1st")) %>%
-  cbind(
-    aggregate(
-      dplyr::select(assault18) %>% mutate(asCount = 1), ., sum) %>%
-    mutate(asCount = replace_na(asCount, 0))) %>%
-  dplyr::select(label, Risk_Category, asCount)
-```
-
-```{r comp}
-ml_breaks <- classIntervals(reg.ss.spatialCV$Prediction, 
-                             n = 5, "fisher")
-as_risk_sf <-
-  reg.ss.spatialCV %>%
-  mutate(label = "Risk Predictions",
-         Risk_Category =classInt::findCols(ml_breaks),
-         Risk_Category = case_when(
-           Risk_Category == 5 ~ "5th",
-           Risk_Category == 4 ~ "4th",
-           Risk_Category == 3 ~ "3rd",
-           Risk_Category == 2 ~ "2nd",
-           Risk_Category == 1 ~ "1st")) %>%
-  cbind(
-    aggregate(
-      dplyr::select(assault18) %>% mutate(asCount = 1), ., sum) %>%
-      mutate(asCount = replace_na(asCount, 0))) %>%
-  dplyr::select(label,Risk_Category, asCount)
+```{r comp, warning = FALSE, message = FALSE}
+#ml_breaks <- classIntervals(reg.ss.spatialCV$Prediction, 
+                             #n = 5, "fisher")
+#as_risk_sf <-
+#  reg.ss.spatialCV %>%
+#  mutate(label = "Risk Predictions",
+  #       Risk_Category =classInt::findCols(ml_breaks),
+  #       Risk_Category = case_when(
+   #        Risk_Category == 5 ~ "5th",
+   #        Risk_Category == 4 ~ "4th",
+   #        Risk_Category == 3 ~ "3rd",
+   #        Risk_Category == 2 ~ "2nd",
+   #        Risk_Category == 1 ~ "1st")) %>%
+  #cbind(
+    #aggregate(
+     # dplyr::select(assault18) %>% mutate(asCount = 1), ., sum) %>%
+     # mutate(asCount = replace_na(asCount, 0))) %>%
+ # dplyr::select(label,Risk_Category, asCount)
 ```
 
 We don't do quite as well because we don't have very many features, but still pretty good.
 
-```{r comp plot}
-rbind(as_KDE_sf, as_risk_sf) %>%
-  na.omit() %>%
-  gather(Variable, Value, -label, -Risk_Category, -geometry) %>%
-  ggplot() +
-    geom_sf(aes(fill = Risk_Category), colour = NA) +
-    geom_sf(data = sample_n(assault18, 3000), size = .5, colour = "black") +
-    facet_wrap(~label, ) +
-    scale_fill_viridis(discrete = TRUE) +
-    labs(title="Comparison of Kernel Density and Risk Predictions",
-         subtitle="2017 assault risk predictions; 2018 assault") +
-    mapTheme(title_size = 14)
+```{r comp plot, warning = FALSE, message = FALSE}
+#rbind(as_KDE_sf, as_risk_sf) %>%
+#  na.omit() %>%
+ # gather(Variable, Value, -label, -Risk_Category, -geometry) %>%
+ # ggplot() +
+  #  geom_sf(aes(fill = Risk_Category), colour = NA) +
+  #  geom_sf(data = sample_n(assault18, 3000), size = .5, colour = "black") +
+   # facet_wrap(~label, ) +
+   # scale_fill_viridis(discrete = TRUE) +
+   # labs(title="Comparison of Kernel Density and Risk Predictions",
+    #     subtitle="2017 assault risk predictions; 2018 assault") +
+  #  mapTheme(title_size = 14)
 ```
-The maps show where assaults happened in 2017 and where they might happen in 2018. This shows us that we can use old data to guess where crimes might happen next.
 
-```{r comp bar}
-rbind(as_KDE_sf, as_risk_sf) %>%
-  st_drop_geometry() %>%
-  na.omit() %>%
-  gather(Variable, Value, -label, -Risk_Category) %>%
-  group_by(label, Risk_Category) %>%
-  summarize(countAssault = sum(Value)) %>%
-  ungroup() %>%
-  group_by(label) %>%
-  mutate(Pcnt_of_test_set_crimes = countAssault / sum(countAssault)) %>%
-    ggplot(aes(Risk_Category,Pcnt_of_test_set_crimes)) +
-      geom_bar(aes(fill=label), position="dodge", stat="identity") +
-      scale_fill_viridis(discrete = TRUE, name = "Model") +
-      labs(title = "Risk prediction vs. Kernel density, 2018 assaults",
-           y = "% of Test Set Assaults (per model)",
-           x = "Risk Category") +
-  theme_bw() +
-      theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
+```{r comp bar, message = FALSE, warning = FALSE }
+#rbind(as_KDE_sf, as_risk_sf) %>%
+#  st_drop_geometry() %>%
+#  na.omit() %>%
+#  gather(Variable, Value, -label, -Risk_Category) %>%
+#  group_by(label, Risk_Category) %>%
+#  summarize(countAssault = sum(Value)) %>%
+#  ungroup() %>%
+#  group_by(label) %>%
+#  mutate(Pcnt_of_test_set_crimes = countAssault / sum(countAssault)) %>%
+#    ggplot(aes(Risk_Category,Pcnt_of_test_set_crimes)) +
+#      geom_bar(aes(fill=label), position="dodge", stat="identity") +
+#      scale_fill_viridis(discrete = TRUE, name = "Model") +
+#      labs(title = "Risk prediction vs. Kernel density, 2018 assaults",
+#           y = "% of Test Set Assaults (per model)",
+#           x = "Risk Category") +
+#  theme_bw() +
+#      theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
 ```
 
 ## Conclusion
+
+This model can be used to inform planning decisions that are carried out by the Office of Innovation and Technology and the Smart Cities office. 
 
 ## References
 

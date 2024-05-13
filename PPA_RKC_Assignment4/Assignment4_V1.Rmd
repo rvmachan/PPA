@@ -387,8 +387,6 @@ whichThreshold %>%
 
 # Conclusion
 
-* *Model finding 1 - still need to have information here*
-
 * This model should be used with caution. While it may be able to predict recidivism, it might highlight 
 
 * Models like this one are dangerous to use in the criminal justice system. While it is important to use data-drive approaches to understand phenomenon in our system, this model is not in-depth enough to catch nuances of why or how someone becomes part of the recidivism category.
