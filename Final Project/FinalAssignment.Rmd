@@ -1080,9 +1080,6 @@ rbind(permits_KD_sf, permits_KD_risk_sf) %>%
 
 ### Risk Mapping
 
-Neighborhoods that may be at a high risk of gentrification
-
-
 ``` {r risk map}
 # Assigning Risk Categories for Predictions
 
@@ -1142,9 +1139,7 @@ ggplot(highest_risk_nhoods) +
 
 
 ```
-
-
-
+Neighborhoods that may be at a high risk of gentrification by the proxy of new construction permits are mostly located near center city. Most of West Philadelphia, a large portion of North Philadelphia, and some parts of the Northwest are at risk of gentrification. The highest risk neighborhoods are Point Breeze, Fishtown, Rittenhouse, and Northern Liberties.
 
 ```{r 2013 data}
 
@@ -1251,16 +1246,15 @@ rbind(permits_KD_sf_2013, permits_KD_risk_sf_2013) %>%
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
 ```
 
-## Getting Chicago city data
+### Conclusion
 
-## Conclusion
-**input some sort of result about the model**
+The model can be used to plan for future policy that can protect legacy residents and small businesses of neighborhoods that are at risk by identifying the neighborhoods where gentrification can occur. This model was built with respect to new construction, permitting, and demolition data, among other predictors. From this analysis, it was identified that many neighborhoods in the region surrounding Center City Philadelphia are at risk for gentrification, especially Point Breeze, Rittenhouse, and river-adjacent neighborhoods like East Kensington, Fishtown, and Northern Liberties.
 
-This model can be used to inform planning decisions that will be carried out by the Office of Innovation and Technology and the Smart Cities office. While it can be a useful tool, it should be used in tandem with other tools to predict and plan for gentrification in different neighborhoods. The staff at Marie Antoinette Predictions chose variables that were possibly predictors of gentrification, but we did not account for everything that could affect and become a predictor for gentrification. The existence and disappearance of civic assets like schools, libraries, green spaces, and public spaces could be markers of possible gentrification that are not tied to the data used in the model. 
+Our work can be used to inform planning decisions that will be carried out by the Office of Innovation and Technology and the Smart Cities office. While it can be a useful tool, it should be used in tandem with other tools to predict and plan for gentrification in different neighborhoods. The staff at Marie Antoinette Predictions chose variables that were possibly predictors of gentrification, but we did not account for everything that could affect and become a predictor for gentrification. The existence and disappearance of civic assets like schools, libraries, green spaces, and public spaces could be markers of possible gentrification that are not tied to the data used in the model. 
 
 Additionally, there are different situations and nuances of displacement that cannot be captured in the data. Predicting the order and timeline displacement is a further challenge that OIT and the Smart Cities office could tackle. Direct displacement, or the phenomenon of when residents can no longer afford to live in their homes because of rising costs, would occur first with the proposals and new constructions and other types of permits^8^. Indirect displacement occurs when higher income residents move into an area when lower income residents move out. This can be captured through census data, in the median income or income bracket breakdown, to see the financial landscape of the neighborhood change^9^. Finally, there is cultural displacement that occurs when civic assets change. Shops change to focus their customer base on new people, and it broadly feels like the neighborhood has transformed^10^. A model that can track a neighborhood using data throughout these phases is one that should be used by the city to identify gentrification. 
 
-## References
+### References
 
 1. https://whyy.org/articles/philadelphia-americas-poorest-big-city-poverty/
 2. https://www.pewtrusts.org/-/media/assets/2020/09/phillyhousingreport.pdf
