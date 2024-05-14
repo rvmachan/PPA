@@ -693,7 +693,7 @@ ggplot(correlation.long, aes(Value, countPermits)) +
 
 ```{r - correlation matrix, message = FALSE, warning = FALSE}
 
-numvars <- c("countPermits", "dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "TotalPop", "MedHHInc", "pctWhite", "pctBlack", "pctBach" ,"pctPoverty", "pctUnemploy", "pctWFH", "pctOwnerOccupied", "pctRenterOccupied", "permit.isSig.dist")
+numvars <- c("countPermits", "dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "totalPop", "medHHInc", "pctWhite", "pctBlack", "pctBach" ,"pctPov", "pctUnemploy", "pctOwnerOccupied", "pctRenterOccupied")
 
 numeric <- final_net %>%
   st_drop_geometry(final_net) %>%
@@ -717,9 +717,9 @@ ggcorrplot(
 ```{r regression, results='hide', warning = FALSE, message = FALSE}
 
 ## define the variables we want
-reg.vars <- c("dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "MedHHInc", "pctBach" ,"pctPoverty", "pctUnemploy", "pctWFH", "pctOwnerOccupied")
+reg.vars <- c("dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "medHHInc", "pctBach" ,"pctPov", "pctUnemploy", "pctOwnerOccupied")
 
-reg.ss.vars <- c("dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "MedHHInc", "pctBach" ,"pctPoverty", "pctUnemploy", "pctWFH", "pctOwnerOccupied", "permit.isSig", "permit.isSig.dist")
+reg.ss.vars <- c("dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "medHHInc", "pctBach" ,"pctPov", "pctUnemploy", "pctOwnerOccupied", "permit.isSig")
 
 ## creating functions for cross validation
 
