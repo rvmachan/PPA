@@ -8,6 +8,13 @@ output:
     theme: journal  
 ---
 
+<<<<<<< Updated upstream
+=======
+*TO:* Akshay Malik, City of Philadelphia, Smart Cities Director
+*FROM:* Revathi V. Machan, Claudia Schreier, Kamya Khandelwal
+*DATE:* 13 May 2024
+*RE:* Predictive modeling for gentrification in Philadelphia
+>>>>>>> Stashed changes
 =======
 **TO:** Akshay Malik, City of Philadelphia Smart Cities Director
 **FROM:** Kamya Khandelwal, Revathi Machan, Claudia Schreier
@@ -40,7 +47,12 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 
 ```
 
+<<<<<<< Updated upstream
 ```{r map theme, results = 'hide', message = FALSE, warning = FALSE}
+=======
+
+```{r - map theme - ideally we replace this later, results = 'hide', message = FALSE, warning = FALSE}
+>>>>>>> Stashed changes
 mapTheme <- function(base_size = 12) {
   theme(
     text = element_text( color = "black"),
@@ -231,6 +243,7 @@ tracts22.pctRenterOccupied <- tracts22 %>%
   rename(Legend = pctRenterOccupied)
 ```
 
+
 The data was visualized using mapping tools. The area from around Center City to lower North Philadelphia and Kensington has the densest amount of construction permits and demolition permits. There is a high density of vacant buildings in West and North Philadelphia.
 
 ```{r police data, message = FALSE, warning = FALSE, results = 'hide'}
@@ -256,10 +269,14 @@ cnstPermits_2013 <- cnstPermits%>%
 ```
 
 
+<<<<<<< Updated upstream
 
 The plots below show how the different types of permits are located all over Philadelphia, looking primarily at the the permits that fall under construction or zoning.We also look at how other various chosen demographic and socio-economic factors are mapped out across the city to compare them against where there is the highest density of permits. Construction permits can be seen in higher concentrations in the areas where there is a higher percentage of individuals with bachelor's degrees and higher unemployment.
 
 ```{r plot variables, fig.width=6, fig.height=4, message = FALSE, warning = FALSE}
+=======
+```{r variable plots, fig.width=6, fig.height=4, message = FALSE, warning = FALSE}
+>>>>>>> Stashed changes
 # Plot 1: map of all construction and demo permits issued b/w 2013 and 2022
 ggplot() + 
     geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
@@ -603,7 +620,11 @@ final_net.localMorans <-
   
 ```
 
+<<<<<<< Updated upstream
 ```{r local morans i, fig.width=10, fig.height=4, warning = FALSE, message = FALSE}
+=======
+```{r local morans i plot, fig.width=10, fig.height=4, warning = FALSE, message = FALSE}
+>>>>>>> Stashed changes
 ## This is just for plotting
 vars <- unique(final_net.localMorans$Variable)
 varList <- list()
@@ -622,7 +643,12 @@ saveRDS(local_morans, file = "local_morans.rds")
 ```
 
 
+<<<<<<< Updated upstream
 ```{r lmi_hotspot,results = 'hide', message = FALSE, warning = FALSE}
+=======
+
+```{r lmi_hotspot, results = 'hide', message = FALSE, warning = FALSE}
+>>>>>>> Stashed changes
 
 local_morans <- readRDS("local_morans.rds")
 
@@ -1091,7 +1117,10 @@ rbind(permits_KD_sf_2022, permits_KD_risk_sf_2022) %>%
 
 ``` {r risk map, results='hide', warning = FALSE, message = FALSE}
 # Assigning Risk Categories for Predictions
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 permit_risk_sf_2022 <-
   filter(reg.summary, Regression == "Spatial LOGO-CV: Spatial Process") %>%
   mutate(label = "Spatial Risk Predictions",
@@ -1122,7 +1151,6 @@ permit_risk_sf_2022 %>%
 ``` {r highest risk neighborhood, results='hide', warning = FALSE, message = FALSE}
 
 # Neighborhoods at highest risk of permitting construction
-
 highest_risk_nhoods <-
   permit_risk_sf_2022 %>%
   dplyr::select(cvID, Risk_Level, countPermits) %>%
@@ -1150,7 +1178,18 @@ ggplot(highest_risk_nhoods) +
 ```
 Neighborhoods that may be at a high risk of gentrification by the proxy of new construction permits are mostly located near center city. Most of West Philadelphia, a large portion of North Philadelphia, and some parts of the Northwest are at risk of gentrification. The highest risk neighborhoods are Point Breeze, Fishtown, Rittenhouse, and Northern Liberties.
 
+<<<<<<< Updated upstream
 ```{r 2013 data, results='hide', warning = FALSE, message = FALSE}
+=======
+
+## Getting Chicago city data
+
+Let's see how our model performed relative to KD on the following year's data.
+=======
+### Comparing to a different time
+
+```{r 2013 data}
+>>>>>>> Stashed changes
 
 permits_KD_sf_2013 <- as.data.frame(permits_KD.1500) %>%
   st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
@@ -1255,7 +1294,10 @@ rbind(permits_KD_sf_2013, permits_KD_risk_sf_2013) %>%
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
 ```
 
+<<<<<<< Updated upstream
 ### Conclusion
+=======
+>>>>>>> Stashed changes
 
 The model can be used to plan for future policy that can protect legacy residents and small businesses of neighborhoods that are at risk by identifying the neighborhoods where gentrification can occur. This model was built with respect to new construction, permitting, and demolition data, among other predictors. From this analysis, it was identified that many neighborhoods in the region surrounding Center City Philadelphia are at risk for gentrification, especially Point Breeze, Rittenhouse, and river-adjacent neighborhoods like East Kensington, Fishtown, and Northern Liberties.
 

@@ -1,12 +1,13 @@
 ---
 title: "Can recidivism be predicted?"
-author: "Kamya Khandelwal, Revathi Machan, Claudia Schreier"
-date: "September 18,2022"
+author: "Kamya Khandelwal, Revathi V. Machan, Claudia Schreier"
+date: "May 14, 2024"
 output:
   html_document:
     toc: true
     toc_float: true
     code_folding: hide
+    theme: journal 
 ---
 
 ```{r setup, include=FALSE}
@@ -76,7 +77,7 @@ rDivism <-
 
 
 # Exploring our model's components
-This code chunk performs several operations on a dataset called `rDivism`. It first selects specific columns (`gender`, `gang_affiliated`, `age_at_release`, `education_level`, `prison_offense`, `prison_years`, `recidivism_within_3years`) from the dataset. Then, it gathers these selected columns into key-value pairs where the key is the variable name and the value is its corresponding value in the dataset, except for the `recidivism_within_3years` column, which remains as is. After reshaping the data, it creates a grouped bar plot using `ggplot2`, where each bar represents the mean value of a variable, grouped by the `recidivism_within_3years` variable. The `facet_wrap` function is used to create separate plots for each variable, and the color of the bars is determined by the `recidivism_within_3years` variable. The color palette for the bars is manually set using the `scale_fill_manual` function. Finally, it adds labels to the axes, a title, a subtitle, and removes the legend from the plot's theme. Overall, this code chunk is visualizing the associations between different features and the likelihood of recidivism within 3 years, providing insights into potential predictive factors for recidivism.
+This code chunk performs several operations on our recidivism dataset `rDivism`. We selected the following  variables `gender`, `gang_affiliated`, `age_at_release`, `education_level`, `prison_offense`, `prison_years`, `recidivism_within_3years`, and then gather these selected columns into key-value pairs to reshape the data. We do this so that the grouped bar plot visualizes the associations between different features and the likelihood of recidivism within 3 years, providing insights into potential predictive factors for recidivism.
 ```{r exploratory_continuous, results = 'hide'}
 rDivism %>%
   dplyr::select(gender,gang_affiliated, age_at_release, education_level, prison_offense, prison_years, recidivism_within_3years) %>%
@@ -92,7 +93,7 @@ rDivism %>%
 ```
 
 
-This code chunk operates on a dataset named `rDivism`. Firstly, it selects specific columns (`gender`, `gang_affiliated`, `age_at_release`, `education_level`, `prison_offense`, `prison_years`, `recidivism_within_3years`). Then, it gathers these columns into key-value pairs, excluding the `recidivism_within_3years` column. After reshaping the data, it generates a density plot using `ggplot2`, where each plot represents the distribution of a variable. The densities are colored based on the `recidivism_within_3years` variable, distinguishing between individuals who did and did not experience recidivism within three years. The `facet_wrap` function is used to create separate plots for each variable. Additionally, it sets a manual color palette using the `scale_fill_manual` function. Finally, it adds a title and a subtitle to the plot. Overall, this code chunk visualizes the distribution of different features, comparing those who experienced recidivism within three years against those who did not, offering insights into the potential differences in feature distributions between the two groups.
+This code chunk visualizes the distribution of different features, comparing those who experienced recidivism within three years against those who did not, offering insights into the potential differences in feature distributions between the two groups.
 ```{r exploratory_continuous_density, message = FALSE, warning = FALSE, results = 'hide'}
 rDivism %>%
     dplyr::select(gender,gang_affiliated, age_at_release, education_level, prison_offense, prison_years, recidivism_within_3years) %>%
@@ -104,7 +105,7 @@ rDivism %>%
     labs(title = "Feature distributions recidivism vs. no recidivism",
          subtitle = "(continous outcomes)")
 ```
-
+The code displays grouped bar plots that illustrate the association between various features (variables like gender, prison offense, prison years) and the likelihood of recidivism. Each bar represents the count of occurrences for different values of the features, separated by the outcome of recidivism (whether it occurred or not). The facet grid arrangement allows for easy comparison across different variables, while the color differentiation helps distinguish between the two recidivism outcomes. This visualization provides insights into how different factors may influence the likelihood of recidivism.
 ```{r exploratory_binary, message = FALSE, warning = FALSE}
 rDivism %>%
     dplyr::select(gender, prison_offense, prison_years, recidivism_within_3years) %>%
@@ -120,7 +121,7 @@ rDivism %>%
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-This code chunk initially groups the dataset `rDivism` by `prison_offense`, calculating the total count of `recidivism_within_3years` within each group, as well as the total count of observations and the national recidivism rate. After summarizing this information, it merges the summarized data back into the original dataset. Next, it categorizes individuals into age groups based on `age_at_release`, assigning them labels such as "Young", "Middle Aged", "Old", and "Very Old". Finally, it converts specific variables (`prior_arrest_episodes_misd` and `prior_arrest_episodes_felony`) into factors, replacing categories like "6 or more" and "10 or more" with numerical factors "6" and "10", respectively, for enhanced analysis and interpretation.
+This code chunk initially groups the dataset `rDivism` by `prison_offense`, calculating the total count of `recidivism_within_3years` within each group, as well as the total count of observations and the national recidivism rate. We categorize individuals into age groups based on `age_at_release`, assigning them labels such as "Young", "Middle Aged", "Old", and "Very Old", and convert specific variables (`prior_arrest_episodes_misd` and `prior_arrest_episodes_felony`) into factors, replacing categories like "6 or more" and "10 or more" with numerical factors "6" and "10", respectively. We do this so that we can better categorize and track what times recidivism is at its highest.
 ```{r country_variables, cache = TRUE}
 rDivism <- 
   rDivism %>% 
@@ -184,12 +185,12 @@ summary(rDivismModel2)
 pR2(rDivismModel2) #McFadden is pseudo R squared
 
 ```
+The output assesses the fit of a null model using various pseudo-R2 statistics. With a log likelihood of -95.71 for the fitted model and -208.37 for the null model, the G² statistic shows a substantial difference of 225.32. McFadden's pseudo-R2 is 0.54, indicating that the model explains about 54% of the variance relative to the null model. The r2ML and r2CU values further support the model's superiority, with 0.52 and 0.70, respectively. These results suggest that the predictors significantly contribute to the model's explanatory power, outperforming the null model.
+
+
 
 ```{r testProbs}
-#if(class(rDivismTest$prior_arrest_episodes_felony) == "character") {rDivismTest$prior_arrest_episodes_felony <- as.numeric(rDivismTest$prior_arrest_episodes_felony)}
-
 rDivismModel$xlevels[["prior_arrest_episodes_felony"]] <- union(rDivismModel$xlevels[["prior_arrest_episodes_felony"]], levels(rDivismTest$prior_arrest_episodes_felony))
-
 
 rDivismTest$prior_arrest_episodes_felony[is.na(rDivismTest$prior_arrest_episodes_felony)] <- 9
 levels_train <- levels(rDivismTrain$prior_arrest_episodes_felony)
@@ -214,6 +215,8 @@ ggplot(testProbs, aes(x = Probs, fill = as.factor(Outcome))) +
   theme(strip.text.x = element_text(size = 18),
         legend.position = "none")
 ```
+This code generates a density plot using ggplot2 to visualize the distribution of predicted probabilities by observed outcomes. It assigns colors to different outcomes and arranges the plots in a grid based on the outcome. The x-axis represents the predicted probabilities of recidivism, while the y-axis shows the density of these probabilities.
+
 
 ## Confusion Matrix
 
@@ -228,17 +231,10 @@ caret::confusionMatrix(testProbs$predOutcome, testProbs$Outcome,
                        positive = "1") #sensitivity tells us how good at predicting the 1, i.e. true positives. specificity is how good are we at predicting the 0, i.e. true negatives.
 
 ```
-The output provided is a Confusion Matrix and associated statistics from a classification model evaluation, detailing its performance on a test dataset. The Confusion Matrix presents the actual and predicted classes, allowing for a breakdown of correct and incorrect predictions. The statistics, such as accuracy, sensitivity, specificity, and positive predictive value, offer insights into different aspects of the model's performance. Accuracy indicates overall correctness, while sensitivity and specificity highlight its ability to correctly identify positive and negative instances, respectively. Positive predictive value reveals the reliability of positive predictions. Understanding these metrics is crucial for assessing the model's strengths and weaknesses, guiding improvements, and determining its suitability for real-world applications. In this specific case, an accuracy of 65.25% suggests moderate overall performance. Sensitivity at 80.77% indicates the model's effectiveness in identifying true positives, while specificity at 42.28% shows room for improvement in correctly identifying true negatives. The positive predictive value of 67.43% signifies reasonable reliability in positive predictions, albeit with potential for enhancement.
+The Confusion Matrix presents the actual and predicted classes, allowing for a breakdown of correct and incorrect predictions. The statistics, such as accuracy, sensitivity, specificity, and positive predictive value, offer insights into different aspects of the model's performance. Accuracy indicates overall correctness, while sensitivity and specificity highlight its ability to correctly identify positive and negative instances, respectively. Understanding these metrics is crucial for assessing the model's strengths and weaknesses, guiding improvements, and determining its suitability for determining recidivism. In this specific case, an accuracy of 65.25% suggests moderate overall performance. Sensitivity at 80.77% indicates the model's effectiveness in identifying true positives, while specificity at 42.28% shows room for improvement in correctly identifying true negatives. The positive predictive value of 67.43% signifies reasonable reliability in positive predictions, albeit with potential for enhancement.
 
 
 ## ROC Curve
-
-```{r auc, message = FALSE, warning = FALSE}
-#roc_object <- roc(testProbs$Outcome, testProbs$predOutcome)
-
-#auc(as.numeric(testProbs$Outcome), as.numeric(testProbs$Probs))
-#auc(testProbs)
-```
 
 ```{r roc_curve, warning = FALSE, message = FALSE}
 ggplot(testProbs, aes(d = as.numeric(Outcome), m = Probs)) +
@@ -248,6 +244,7 @@ ggplot(testProbs, aes(d = as.numeric(Outcome), m = Probs)) +
   labs(title = "ROC Curve - Recidivism Model")
 ```
 The ROC curve generated by the provided code is essential for evaluating the performance of a recidivism model. ROC (Receiver Operating Characteristic) curves illustrate the trade-off between the true positive rate (sensitivity) and the false positive rate (1 - specificity) across different decision thresholds. This visualization is crucial as it provides a comprehensive view of the model's discrimination ability and helps in selecting the optimal threshold for classification. A higher area under the ROC curve (AUC) indicates better overall performance, with values closer to 1 signifying superior discrimination between positive and negative instances. By plotting the ROC curve, analysts can assess the model's effectiveness in distinguishing between recidivism and non-recidivism cases, aiding in decision-making processes and further refining the model's predictive capabilities. The inclusion of the title "ROC Curve - Recidivism Model" ensures clarity and context, facilitating easier interpretation and communication of results.
+
 
 
 ## Model Accuracy
@@ -281,7 +278,9 @@ cvFit <- train(recidivism_within_3years ~ .,
 # View the results
 cvFit
 ```
-The results of the Generalized Linear Model (GLM) applied to the recidivism dataset indicate promising performance in predicting whether individuals will reoffend after being incarcerated. With 269 samples and 52 predictors, the model was trained and evaluated using cross-validation with 100 folds. The binary classification task, distinguishing between 'FALSE.' and 'TRUE.' classes representing non-recidivism and recidivism respectively, yielded impressive results. The model achieved a perfect ROC value of 1, indicating excellent discrimination ability between the two classes. Moreover, both sensitivity and specificity were observed to be 1, signifying that the model effectively identified both recidivating and non-recidivating individuals. These findings suggest that the GLM exhibits strong predictive capability in discerning recidivism tendencies within the dataset. However, it's important to interpret these results within the broader context of criminal justice reforms and consider additional factors such as model generalizability, potential biases, and ethical implications when deploying such predictive tools within real-world scenarios.
+The results of the GLM applied to the recidivism dataset indicate promising performance in predicting whether individuals will reoffend after being incarcerated. With 269 samples and 52 predictors, the model was trained and evaluated using cross-validation with 100 folds. The binary classification task, distinguishing between 'FALSE.' and 'TRUE.' classes representing non-recidivism and recidivism respectively, yielded impressive (too impressive) results. The model achieved a perfect ROC value of 1, indicating excellent discrimination ability between the two classes. Moreover, both sensitivity and specificity were observed to be 1, signifying that the model identified both recidivating and non-recidivating individuals 100% of the time. These findings tell us that this GLM model is overfitted and can predict this 100% of the time with the dataframe given, which means that this model isn't generalizeable to other datasets. 
+
+
 
 ```{r goodness_metrics, message = FALSE, warning = FALSE}
 dplyr::select(cvFit$resample, -Resample) %>%
@@ -296,7 +295,7 @@ dplyr::select(cvFit$resample, -Resample) %>%
          subtitle = "Across-fold mean reprented as dotted lines")
 
 ```
-This code constructs a visualization to assess the goodness-of-fit metrics derived from cross-validated model evaluation. Initially, the code selects relevant columns from the cross-validation results dataframe, excluding the 'Resample' column. Subsequently, it reshapes the data into a long format, facilitating visualization by grouping metrics into key-value pairs. Following this, a left join operation merges the reshaped dataframe with the mean values of metrics across all cross-validation folds. The resulting dataset is then used to generate a histogram using ggplot, where the x-axis represents the values of the evaluated metrics. Additionally, vertical dotted lines are added to denote the mean values of the metrics, aiding in the interpretation of their distributions. This visualization provides a comprehensive overview of the distribution and mean values of goodness-of-fit metrics across cross-validation folds, aiding in the assessment of model performance and identifying potential areas for improvement.
+This code constructs a visualization to assess the goodness-of-fit metrics derived from cross-validated model evaluation. Initially, the code selects relevant columns from the cross-validation results dataframe, excluding the 'Resample' column. Subsequently, it reshapes the data into a long format, facilitating visualization by grouping metrics into key-value pairs. This visualization provides a comprehensive overview of the distribution and mean values of goodness-of-fit metrics across cross-validation folds, aiding in the assessment of model performance and identifying potential areas for improvement.
 
 
 
@@ -304,7 +303,7 @@ This code constructs a visualization to assess the goodness-of-fit metrics deriv
 
 The Cost-Benefit calculation of recidivism versus continued jail-time involves a comprehensive analysis of the financial and societal implications associated with both scenarios. It considers factors such as the costs of incarceration, including housing, healthcare, and administrative expenses, weighed against the potential benefits of reduced crime rates and enhanced public safety. Additionally, it evaluates the effectiveness of alternative interventions, such as rehabilitation programs and community-based supervision, in mitigating recidivism and promoting successful reintegration into society. By quantifying the costs and benefits of different approaches to managing recidivism, policymakers can make informed decisions about resource allocation and prioritize evidence-based strategies that maximize societal well-being while minimizing financial burdens.
 
-The outlined code serves as the methodology for conducting the cost-benefit calculation regarding recidivism versus continued jail-time. Initially, it filters out any missing data from the analysis using the `drop_na()` function. Subsequently, it computes various outcome metrics, such as True Negative, True Positive, False Negative, and False Positive rates, based on the predictive model's performance. Leveraging these metrics, the code estimates the financial implications associated with each prediction outcome, including correctly and incorrectly identifying recidivism. Finally, it organizes the calculated metrics and revenue estimates into a concise Cost/Benefit Table, offering a structured overview of the financial and societal costs and benefits associated with different prediction scenarios. This methodology provides a systematic approach to assess the effectiveness and economic viability of interventions aimed at reducing recidivism rates.
+The outlined code serves as the methodology for conducting the cost-benefit calculation regarding recidivism versus continued jail-time. This calculation looks at various outcome metrics, such as True Negative, True Positive, False Negative, and False Positive rates, based on the predictive model's performance. Leveraging these metrics, the code estimates the financial implications associated with each prediction outcome, including correctly and incorrectly identifying recidivism. Finally, it organizes the calculated metrics and revenue estimates into a concise Cost/Benefit Table, offering a structured overview of the financial and societal costs and benefits associated with different prediction scenarios. This methodology provides a systematic approach to assess the effectiveness and economic viability of interventions aimed at reducing recidivism rates.
 ```{r cost_benefit}
 testProbs <- drop_na(testProbs)
 
@@ -337,7 +336,6 @@ Conversely, incorrectly predicting recidivism (False Positive) can have adverse 
 Therefore, while revenue in this context does not translate to monetary gains, it serves as a metric to evaluate the effectiveness and efficiency of recidivism prediction models. Maximizing revenue entails optimizing the balance between correctly identifying individuals at risk of recidivism (True Positives) to provide necessary support and minimizing incorrect predictions (False Positives) to avoid unnecessary societal costs and potential harm to individuals.
 
 
-This block of code defines a function called `iterateThresholds`, designed to explore various threshold values for a predictive model. It initiates by setting `x` to `0.01` and creates an empty dataframe `all_prediction` to store the outcomes of each iteration. The function then enters a while loop that iterates over threshold values from `0.01` to `1`. Within each iteration, predictions are made based on the current threshold, and metrics such as True Negative, True Positive, False Negative, and False Positive are computed. These metrics are organized into a tidy format, and the revenue associated with each prediction outcome is calculated using predefined formulas. The results of each iteration are appended to the `all_prediction` dataframe. This process continues until the threshold value reaches `1`. Ultimately, the function provides insights into how varying threshold values impact prediction outcomes and associated revenue, aiding in the optimization of the predictive model.
 ```{r iterate_threshold}
 iterateThresholds <- function(data) {
   x = .01
@@ -368,7 +366,8 @@ return(all_prediction)
 ```
 
 
-This block of code first calls the `iterateThresholds` function with the dataset `testProbs2`, storing the results in a dataframe named `whichThreshold`. Next, it aggregates the revenue values from `whichThreshold` dataframe based on different threshold values. The `group_by` function is used to group the data by the threshold values, and `summarize` computes the total revenue for each threshold. These aggregated results are stored in a new dataframe called `whichThreshold_revenue`. Following this, a line plot is created using `ggplot`, where the x-axis represents the threshold values and the y-axis represents the total revenue. The `geom_line` function is used to draw a line connecting the revenue values for different thresholds. Additionally, a vertical line is added to the plot using `geom_vline`, which denotes the optimal threshold. This optimal threshold is determined by finding the threshold with the highest revenue using the `arrange` and `pull` functions. The plot is then annotated with appropriate titles and subtitles to provide context and interpretation.
+This block of code first calls the `iterateThresholds` function that aggregates the revenue values from `whichThreshold` dataframe based on different threshold values. We create a line plot where the x-axis represents the threshold values and the y-axis represents the total revenue. The `geom_line` function is used to draw a line connecting the revenue values for different thresholds. Additionally, a vertical line is added to the plot using `geom_vline`, which denotes the optimal threshold. 
+
 ```{r revenue_model}
 whichThreshold <- iterateThresholds(testProbs2)
 
