@@ -39,7 +39,7 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 
 ```
 
-```{r - map theme - ideally we replace this later}
+```{r - map theme - ideally we replace this later, results = 'hide', message = FALSE, warning = FALSE}
 mapTheme <- function(base_size = 12) {
   theme(
     text = element_text( color = "black"),
@@ -81,7 +81,7 @@ plotTheme <- function(base_size = 12) {
 ```
 
 
-```{r read_data}
+```{r read_data, results = 'hide', message = FALSE, warning = FALSE}
 # permits
 phlPermits <- 
   st_read("https://phl.carto.com/api/v2/sql?q=SELECT+*+FROM+permits+WHERE+permitissuedate+>=+'2013-01-01'+AND+permitissuedate+<+'2022-12-31'&filename=permits&format=geojson&skipfields=cartodb_id") %>% 
@@ -232,7 +232,7 @@ tracts22.pctRenterOccupied <- tracts22 %>%
 
 The data was visualized using mapping tools. The area from around Center City to lower North Philadelphia and Kensington has the densest amount of construction permits and demolition permits. There is a high density of vacant buildings in West and North Philadelphia.
 
-```{r police data}
+```{r police data, message = FALSE, warning = FALSE, results = 'hide'}
 #Data Cleaning!
 
 #Categorizing the permits for construction and demolition
@@ -250,7 +250,7 @@ demoPermits <- phlPermits %>%
 ```
 
 
-```{r fig.width=6, fig.height=4}
+```{r fig.width=6, fig.height=4, message = FALSE, warning = FALSE}
 # Plot 1: map of all construction and demo permits issued b/w 2013 and 2022
 ggplot() + 
     geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
@@ -364,7 +364,7 @@ ggplot()+
 ```
 
 
-```{r fishnet}
+```{r fishnet, message = FALSE, warning = FALSE}
 
 
 
@@ -426,7 +426,7 @@ ggplot() +
 ```
 
 
-```{r knn}
+```{r knn, warning = FALSE, message = FALSE}
 
 ## 1.2. Vacant Buildings
 
@@ -602,14 +602,14 @@ for(i in vars){
       theme_void() + theme(legend.position="bottom")}
 
 do.call(grid.arrange,c(varList, ncol = 4, top = "Local Morans I Statistics, Construction Permits"))
-saveRDS(local_morans, file = "/Users/kamya14o2/Desktop/Weitzman/4th Sem/PPA/Mid-term/PPA_RK/Final Project/local_morans.rds")
+saveRDS(local_morans, file = "")
 ```
 
 
 
 ```{r lmi_hotspot,results = 'hide', message = FALSE, warning = FALSE}
 
-local_morans <- readRDS("/Users/kamya14o2/Desktop/Weitzman/4th Sem/PPA/Mid-term/PPA_RK/Final Project/local_morans.rds")
+local_morans <- readRDS("")
 
 final_net <- final_net %>%
   mutate(permit.isSig = ifelse(local_morans[,5] <= 0.0000001,1,0)) %>%
