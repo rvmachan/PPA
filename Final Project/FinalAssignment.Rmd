@@ -673,7 +673,10 @@ ggplot() +
 #      theme_void()
 ```
 
-## Building and evaluating the model
+### Building and evaluating the model
+
+**poisson regression model** 
+**more text here** what sorts of variables will be used
 
 ```{r - correlation tests for spatial and demographic factors, warning = FALSE, message = FALSE}
 
@@ -724,7 +727,7 @@ ggcorrplot(
     theme(axis.text.y=element_text(size=8))
 
 ```
-
+There seems to be relatively high positive correlation between median household income and the percent of the population that is white. This may suggest that areas with more white residents are higher earning neighborhoods, or a neighborhood that is gentrifying may have more higher income and more white residents. There is a relatively high negative correlation between total population and the amount of vacant buildings. This may mean that there are less vacant buildings in more populous areas - this could relate to gentrification in the way that more crowded, coveted neighborhoods will be more pressed for space, leading to redevelopment of vacant properties.
 
 ```{r regression, results='hide', warning = FALSE, message = FALSE}
 
@@ -868,7 +871,7 @@ error_by_reg_and_fold %>%
 ```
 
 
-```{r tables, results='hide', warning = FALSE, message = FALSE}
+```{r tables, warning = FALSE, message = FALSE}
 # Table of MAE and Standard Deviation MAE
 
 st_drop_geometry(error_by_reg_and_fold) %>%
@@ -881,7 +884,7 @@ st_drop_geometry(error_by_reg_and_fold) %>%
     row_spec(4, color = "black", background = "#FDE725FF") 
 
 ```
-
+The areas with some of the greatest mean absolute error are closer to center city, such as Fishtown, University City, and Graduate Hospital. Regions of Philadelphia close to the North, West, South, and along the Delaware river showed lower errors, both in terms of just risk factors and spatial process. There was higher error shown in the Spatial LOGO-CV process than the other validation methods. The random k-fold processes resulted in lower mean absolute error.
 ``` {r morans i errors, results='hide', warning = FALSE, message = FALSE}
 # Assuming 'error_by_reg_and_fold' contains the necessary columns and spatial data
 # First, ensure that your data frame has the appropriate structure and unique row names
@@ -1074,7 +1077,11 @@ rbind(permits_KD_sf, permits_KD_risk_sf) %>%
 
 
 ```
-## Risk Map
+
+### Risk Mapping
+
+Neighborhoods that may be at a high risk of gentrification
+
 
 ``` {r risk map}
 # Assigning Risk Categories for Predictions
@@ -1137,12 +1144,7 @@ ggplot(highest_risk_nhoods) +
 ```
 
 
-## Getting Chicago city data
 
-Let's see how our model performed relative to KD on the following year's data.
-=======
-### Comparing to a different time
->>>>>>> 2a4712811258811a49560cfd06321ccfeee3d732
 
 ```{r 2013 data}
 
