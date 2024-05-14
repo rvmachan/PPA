@@ -675,8 +675,7 @@ ggplot() +
 
 ### Building and evaluating the model
 
-**poisson regression model** 
-**more text here** what sorts of variables will be used
+The model used in this analysis is a poisson regression model. The collected and cleaned data that was used in this model was demographic information like race, income, and work status; housing information like percent renter and owner occupied; regional characteristics like vacant buildings, construction permits, affordable housing, and demolitions.
 
 ```{r - correlation tests for spatial and demographic factors, warning = FALSE, message = FALSE}
 
