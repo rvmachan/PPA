@@ -271,7 +271,7 @@ cnstPermits_2013 <- cnstPermits%>%
 
 <<<<<<< Updated upstream
 
-The plots below show how the different types of permits are located all over Philadelphia, looking primarily at the the permits that fall under construction or zoning.We also look at how other various chosen demographic and socio-economic factors are mapped out across the city to compare them against where there is the highest density of permits. Construction permits can be seen in higher concentrations in the areas where there is a higher percentage of individuals with bachelor's degrees and higher unemployment.
+The plots below show how the different types of permits are located all over Philadelphia, looking primarily at the the permits that fall under construction or zoning. We also look at how other various chosen demographic and socio-economic factors are mapped out across the city to compare them against where there is the highest density of permits. Construction permits can be seen in higher concentrations in the areas where there is a higher percentage of individuals with bachelor's degrees and higher unemployment.
 
 ```{r plot variables, fig.width=6, fig.height=4, message = FALSE, warning = FALSE}
 =======
@@ -1017,26 +1017,12 @@ as.data.frame(permits_KD.1000) %>%
      theme_void()
 ```
 
-<<<<<<< HEAD
-``` {r kd_spatial, results='hide', warning = FALSE, message = FALSE}
-
-
-# Combining the data frames
-permits_KD_df <- do.call(rbind, permits_KD_list)
-
-# Convert to sf for spatial operations
-permits_KD_sf <- st_as_sf(permits_KD_df, coords = c("x", "y"), crs = st_crs(final_net))
-
-# Kernel Density Predictions with Spatial Features
-permits_KD_sf <- as.data.frame(permits_KD.1000) %>%
-=======
 
 ``` {r kd_spatial, results='hide', warning = FALSE, message = FALSE}
 
 # Prediction by Kernel Density Model
 
 permits_KD_sf_2022 <- as.data.frame(permits_KD.1500) %>%
->>>>>>> b41998293da2f0d5e320a88770723f4f26c09dc8
   st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
   aggregate(., final_net, mean) %>%
   mutate(label = "Kernel Density Estimates",
@@ -1049,17 +1035,6 @@ permits_KD_sf_2022 <- as.data.frame(permits_KD.1500) %>%
            TRUE ~ "Minimal Risk")) %>%
   cbind(
     aggregate(
-<<<<<<< HEAD
-      dplyr::select(constructionPermits_2022, ., sum(1), na.rm = TRUE) %>%
-      rename(permitCount = sum) %>%
-      mutate(permitCount = replace_na(permitCount, 0))) %>%
-  dplyr::select(label, Risk_Level, permitCount)
-
-# Risk Predictions from Spatial Cross-Validation Model
-permits_KD_risk_sf <-
-  reg.ss.spatialCV %>%
-  mutate(label = "Spatial Risk Predictions", 
-=======
       dplyr::select(cnstPermits_2022) %>% mutate(permitCount = 1), ., sum) %>%
       mutate(permitCount = replace_na(permitCount, 0))) %>%
   dplyr::select(label, Risk_Level, permitCount)
@@ -1069,7 +1044,6 @@ permits_KD_risk_sf <-
 permits_KD_risk_sf_2022 <-
   reg.ss.spatialCV %>%
   mutate(label = "Spatial Risk Predictions",
->>>>>>> b41998293da2f0d5e320a88770723f4f26c09dc8
          Risk_Level = ntile(Prediction, 5),
          Risk_Level = case_when(
            Risk_Level == 5 ~ "Very High Risk",
@@ -1077,37 +1051,6 @@ permits_KD_risk_sf_2022 <-
            Risk_Level == 3 ~ "Moderate Risk",
            Risk_Level == 2 ~ "Low Risk",
            TRUE ~ "Minimal Risk")) %>%
-<<<<<<< HEAD
-  cbind(
-    aggregate(
-      dplyr::select(constructionPermits_2022, ., sum(1), na.rm = TRUE) %>%
-      rename(permitCount = sum) %>%
-      mutate(permitCount = replace_na(permitCount, 0))) %>%
-  dplyr::select(label, Risk_Level, permitCount)
-
-# Visualization of Comparison Between Kernel Density and Risk Predictions
-comparison_df <-
-  rbind(permits_KD_sf, permits_KD_risk_sf) %>%
-  na.omit() %>%
-  gather(Variable, Value, -label, -Risk_Level, -geometry) %>%
-  ggplot() +
-  geom_sf(aes(fill = Risk_Level, colour = NA)) +
-  geom_sf(data = sample_n(constructionPermits_2022, 1130), size = 0.5, colour = "black") +
-  facet_wrap(~label) +
-  scale_fill_viridis_d(option = "plasma", name = "Risk Level") +
-  labs(title="Comparison of Density Estimates and Spatial Risk Models",
-       subtitle="Layered 2022 Permit Predictions with Actual Permits Marked",
-       caption = "Data visualization based on model predictions for 2022.") +
-  theme_minimal() +
-  theme(plot.title = element_text(size = 14, face = "bold"),
-        plot.subtitle = element_text(size = 10),
-        legend.position = "bottom")
-
-# Print the plot to display
-print(comparison_df)
-
-
-=======
    cbind(
     aggregate(
       dplyr::select(cnstPermits_2022) %>% mutate(permitCount = 1), ., sum) %>%
@@ -1139,13 +1082,10 @@ rbind(permits_KD_sf_2022, permits_KD_risk_sf_2022) %>%
        caption = 'Figure 19') +
   mapTheme() +
   plotTheme()
->>>>>>> b41998293da2f0d5e320a88770723f4f26c09dc8
 
 ```
 
 
-<<<<<<< HEAD
-=======
 ``` {r comparison bar plots, results='hide', warning = FALSE, message = FALSE}
 
 # Comparison of predictions - Bar Plots
@@ -1242,7 +1182,6 @@ Neighborhoods that may be at a high risk of gentrification by the proxy of new c
 ```{r 2013 data, results='hide', warning = FALSE, message = FALSE}
 =======
 
->>>>>>> b41998293da2f0d5e320a88770723f4f26c09dc8
 ## Getting Chicago city data
 
 Let's see how our model performed relative to KD on the following year's data.
@@ -1355,17 +1294,10 @@ rbind(permits_KD_sf_2013, permits_KD_risk_sf_2013) %>%
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
 ```
 
-<<<<<<< HEAD
-## Getting Chicago city data
-
-## Conclusion
-**input some sort of result about the model**
-=======
 <<<<<<< Updated upstream
 ### Conclusion
 =======
 >>>>>>> Stashed changes
->>>>>>> b41998293da2f0d5e320a88770723f4f26c09dc8
 
 The model can be used to plan for future policy that can protect legacy residents and small businesses of neighborhoods that are at risk by identifying the neighborhoods where gentrification can occur. This model was built with respect to new construction, permitting, and demolition data, among other predictors. From this analysis, it was identified that many neighborhoods in the region surrounding Center City Philadelphia are at risk for gentrification, especially Point Breeze, Rittenhouse, and river-adjacent neighborhoods like East Kensington, Fishtown, and Northern Liberties.
 
