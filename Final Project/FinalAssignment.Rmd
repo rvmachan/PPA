@@ -1,4 +1,7 @@
 ---
+title: 'Final: Measuring Gentrification'
+author: "Kamya Khandelwal, Revathi Machan, Claudia Schreier"
+date: "05/13/2024"
 output:
   html_document:
     toc: true
@@ -8,29 +11,20 @@ output:
     theme: journal  
 ---
 
-<<<<<<< Updated upstream
-=======
-*TO:* Akshay Malik, City of Philadelphia, Smart Cities Director
-*FROM:* Revathi V. Machan, Claudia Schreier, Kamya Khandelwal
+*TO:* Akshay Malik, City of Philadelphia Smart Cities Director
+*FROM:* Kamya Khandelwal, Revathi Machan, Claudia Schreier
 *DATE:* 13 May 2024
 *RE:* Predictive modeling for gentrification in Philadelphia
->>>>>>> Stashed changes
-=======
-**TO:** Akshay Malik, City of Philadelphia Smart Cities Director
-**FROM:** Kamya Khandelwal, Revathi Machan, Claudia Schreier
-**DATE:** 13 May 2024
-**RE:** Predictive modeling for gentrification in Philadelphia
 
-### Gentrification in Phildelphia 
+## Gentrification in Philadelphia 
 
-Philadelphia has been experiencing a cost-of-living crisis for decades. For a city commonly referred to as the nation’s poorest largest city, there is much worry about the future of new developments and housing^1^. Philadelphia has the highest poverty rate out of the ten largest cities in the US. In 2018, around 231,000 Philadelphia households were cost-burdened, which is defined by the US Department of Housing and Urban Development as a situation when a household spends 30% or more of its income on housing costs, including rent, mortgage payments, utilities, insurance, and property taxes^2^. This problem is more severe for renters – among renters with incomes below $30,000 per year, 88% are cost-burdened and 68% are severely cost-burdened (spending more than 50% of income on housing)^3^.  
+Philadelphia has been experiencing a cost-of-living crisis for decades. For a city commonly referred to as the nation’s poorest largest city, there is much worry about the future of new developments and housing^1^. Philadelphia has the highest poverty rate out of the ten largest cities in the US. In 2018, around 231,000 Philadelphia households were cost-burdened, which is defined by the US Department of Housing and Urban Development as a situation when a household spends 30% or more of its income on housing costs, including rent, mortgage payments, utilities, insurance, and property taxes^2^. This problem is more severe for renters – among renters with incomes below $30,000 per year, 88% are cost-burdened and 68% are severely cost-burdened (spending more than 50% of income on housing).  
 
 With lots of cost-burdened householders, including homeowners and renters, in the city, it seems that the fear  of displacement and gentrification in many neighborhoods is common. Historically high rents and mortgage rates, combined with unprecedented levels of new developments have spurred discussion around gentrification in the city^4^. Gentrification is defined as a type of neighborhood change where higher income residents replace lower income ones – housing costs rise, property values rise, and typically, long term residents get displaced^5^. Gentrification today is informed by a legacy of displacement that was spurred by ”redevelopment” and ”urban renewal” plans. Philadelphia was hit especially hard by this displacement in West Philadelphia with university expansion plans throughout the second half of the 20th century.
 
-
 In broader discussions about gentrification online and in media, gentrification can seem like something that occurs when a brewery replaces a corner store, or a luxury gym replaces a single-family home. Gentrification can be marked by many things, and the signs can vary for different people that a neighborhood is being gentrified.  There has even been new technology like AI models created to identify signs of gentrification from temporal maps like Google Street View^6^. While the signs of gentrification can be visible, they may be hard to track through data. Researchers rely on demographic data to make conclusions about the types of change that the neighborhood is experiencing, like racial changes, age changes, and income changes.
 
-### Data exploration
+## Data exploration
 
 This project seeks to create a predictive model for gentrification that can be used in planning practice to identify areas at risk for gentrification or identify areas undergoing gentrification. This model uses factors that the team at Marie Antoinette Predictions have researched and believe are reliable markers for gentrification. The variables in our model are construction permits, vacant properties, affordable housing locations, green spaces, and demolitions. The data was collected from Philadelphia’s open data portal^7^. After downloading the relevant data, it was cleaned to ensure that variables were clear and transferable. 
 
@@ -47,12 +41,9 @@ source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-L
 
 ```
 
-<<<<<<< Updated upstream
-```{r map theme, results = 'hide', message = FALSE, warning = FALSE}
-=======
 
-```{r - map theme - ideally we replace this later, results = 'hide', message = FALSE, warning = FALSE}
->>>>>>> Stashed changes
+```{r map theme, results = 'hide', message = FALSE, warning = FALSE}
+
 mapTheme <- function(base_size = 12) {
   theme(
     text = element_text( color = "black"),
@@ -93,6 +84,7 @@ plotTheme <- function(base_size = 12) {
 }
 ```
 
+### Read in Data from Philadelphia
 
 ```{r read_data, results = 'hide', message = FALSE, warning = FALSE}
 # permits
@@ -243,11 +235,11 @@ tracts22.pctRenterOccupied <- tracts22 %>%
   rename(Legend = pctRenterOccupied)
 ```
 
+### Data Visualisation
 
 The data was visualized using mapping tools. The area from around Center City to lower North Philadelphia and Kensington has the densest amount of construction permits and demolition permits. There is a high density of vacant buildings in West and North Philadelphia.
 
 ```{r police data, message = FALSE, warning = FALSE, results = 'hide'}
-#Data Cleaning!
 
 #Categorizing the permits for construction and demolition
 phlPermits <- phlPermits %>%
@@ -268,15 +260,10 @@ cnstPermits_2013 <- cnstPermits%>%
   filter(Year == 2013)
 ```
 
-
-<<<<<<< Updated upstream
-
 The plots below show how the different types of permits are located all over Philadelphia, looking primarily at the the permits that fall under construction or zoning. We also look at how other various chosen demographic and socio-economic factors are mapped out across the city to compare them against where there is the highest density of permits. Construction permits can be seen in higher concentrations in the areas where there is a higher percentage of individuals with bachelor's degrees and higher unemployment.
 
 ```{r plot variables, fig.width=6, fig.height=4, message = FALSE, warning = FALSE}
-=======
-```{r variable plots, fig.width=6, fig.height=4, message = FALSE, warning = FALSE}
->>>>>>> Stashed changes
+
 # Plot 1: map of all construction and demo permits issued b/w 2013 and 2022
 ggplot() + 
     geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
@@ -388,7 +375,7 @@ ggplot()+
     scale_color_identity() +
     labs(title="% Population with Bachelor's Degree around Permits Issued")
 ```
-
+### Fishnet
 
 Here we construct a geospatial dataset to examine how the risk of new development is spread throughout Philadelphia. To do this we created a fishnet which is a continous grid pattern consisting of cells measuring 500x500 feet. This grid allows us to conceptualize development risk, represented by the presence of new construction permits. The following plot depicts the count of new construction permits across the fishnet, with grid cells depicted in yellow indicating the highest permit counts.
 
@@ -450,10 +437,12 @@ ggplot() +
   labs(title = "Construction Permits Joined to Fishnet",
        subtitle = 'Philadelphia') + mapTheme() + plotTheme()
 ```
+### Nearest Neighbour
 
 This code segment creates a nearest neighbor feature for different categories, including vacant buildings, affordable housing, green spaces, and building demolitions. For each category, it first maps the nearest feature from a given dataset to another dataset, converts the datasets to `rsgeo` geometries, calculates the Euclidean distance between each observation in one dataset and its nearest neighbor in the other dataset. Finally, the calculated distances are appended as new variables to the original dataset for each category, such as `dist_vacantBuilding`, `dist_affordableHousing`, `dist_greenSpace`, and `dist_buildingDemolition`. Essentially this process turns each individual grid cell into a centroid point and then measures the distances between each to find the nearest risk factor point. 
 
 This spatial analysis is crucial for understanding the relationships between different urban features and their proximity to one another. By calculating the distances between variables like vacant buildings, affordable housing, green spaces, and building demolitions, it provides insights into the spatial distribution and potential interactions among these features.
+
 ```{r knn, warning = FALSE, message = FALSE}
 
 ## 1.2. Vacant Buildings
@@ -554,6 +543,7 @@ do.call(grid.arrange, c(list(grobs = mapList, ncol = 2,
 
 ```
 
+### Spatial Joins
 
 Here we want to join the census data to our fishnet so we can also map our demographic variables in a similar fashion, and also just standardize our mode of analysis across all our data.
 
@@ -599,10 +589,14 @@ final_net.weights <- nb2listw(final_net.nb, style="W", zero.policy=TRUE)
 # print(final_net.weights, zero.policy=TRUE)
 ```
 
+## Modeling Process
+
+### Local Moran's I
 
 Incorporating Local Moran's I analysis into the spatial modeling process is pivotal for understanding the distribution of construction permits across urban areas. Local Moran's I serves as a vital tool, providing insights into the spatial clustering or dispersion of permit issuance, thereby enhancing the model's capacity to identify significant spatial patterns in urban development. By integrating Local Moran's I statistics with other spatial factors, such as nearest neighbor distances and geographic features, the model gains a comprehensive understanding of the underlying spatial dynamics influencing construction permit distributions, thereby facilitating informed urban planning and policy decisions.In the context of this model, Local Moran's I helps identify significant spatial patterns in construction permit issuance, indicating areas with high or low concentrations of permits. 
 
 Initially, the local Moran's I values are computed for the permit counts using spatial weights. Then, these results are joined with the spatial data, and significant hotspots are identified based on a significance threshold of 0.05. The output is organized into a long format for plotting, where each variable's Local Moran's I statistics are visualized as spatial maps. These maps depict the spatial clustering patterns of permit issuance, indicating areas of significant clustering or dispersion. 
+
 ```{r local moran, results = 'hide', message = FALSE, warning = FALSE}
 ## see ?localmoran
 local_morans <- localmoran(final_net$countPermits, final_net.weights, zero.policy=TRUE) %>% 
@@ -620,11 +614,9 @@ final_net.localMorans <-
   
 ```
 
-<<<<<<< Updated upstream
+
 ```{r local morans i, fig.width=10, fig.height=4, warning = FALSE, message = FALSE}
-=======
-```{r local morans i plot, fig.width=10, fig.height=4, warning = FALSE, message = FALSE}
->>>>>>> Stashed changes
+
 ## This is just for plotting
 vars <- unique(final_net.localMorans$Variable)
 varList <- list()
@@ -642,13 +634,11 @@ do.call(grid.arrange,c(varList, ncol = 4, top = "Local Morans I Statistics, Cons
 saveRDS(local_morans, file = "local_morans.rds")
 ```
 
+### Distance to Hotspots
 
-<<<<<<< Updated upstream
+Shorter distances between permits indicate areas with higher construction density, which can be associated with rapid urban development or gentrification.
+
 ```{r lmi_hotspot,results = 'hide', message = FALSE, warning = FALSE}
-=======
-
-```{r lmi_hotspot, results = 'hide', message = FALSE, warning = FALSE}
->>>>>>> Stashed changes
 
 local_morans <- readRDS("local_morans.rds")
 
@@ -680,8 +670,6 @@ ggplot() +
 #final_net[(mp$x >=0 & mp$wx >=0) & final_net$lmp <= 0.05, "hotspot"]<- 1
 ```
 
-
-
 ```{r hotspot, results = 'hide', warning = FALSE, message = FALSE}
 # generates warning from NN
 #final_net <- final_net %>% 
@@ -702,9 +690,11 @@ ggplot() +
 #      theme_void()
 ```
 
-### Building and evaluating the model
+## Building and evaluating the model
 
 The model used in this analysis is a poisson regression model. The collected and cleaned data that was used in this model was demographic information like race, income, and work status; housing information like percent renter and owner occupied; regional characteristics like vacant buildings, construction permits, affordable housing, and demolitions.
+
+### Correlation
 
 ```{r - correlation tests for spatial and demographic factors, warning = FALSE, message = FALSE}
 
@@ -757,13 +747,16 @@ ggcorrplot(
 ```
 There seems to be relatively high positive correlation between median household income and the percent of the population that is white. This may suggest that areas with more white residents are higher earning neighborhoods, or a neighborhood that is gentrifying may have more higher income and more white residents. There is a relatively high negative correlation between total population and the amount of vacant buildings. This may mean that there are less vacant buildings in more populous areas - this could relate to gentrification in the way that more crowded, coveted neighborhoods will be more pressed for space, leading to redevelopment of vacant properties.
 
-
-
 Conducting a regression model in this context is crucial for several reasons. Firstly, it allows for the quantification of relationships between various factors and the outcome of interest, such as the number of permits issued or the likelihood of development. This enables the identification of significant predictors and their respective impact on the outcome, aiding in understanding the underlying dynamics of development risk. Additionally, regression modeling provides a means to assess the relative importance of different variables, prioritize interventions, and inform decision-making processes aimed at mitigating development-related challenges or promoting sustainable urban growth.
 
 Cross-validation is performed to evaluate the predictive performance of Poisson regression models applied to the dataset. This process involves splitting the dataset into distinct folds, where each fold serves as a training set for model development and a testing set for performance assessment. Within each iteration, a Poisson regression model is trained using the training data and then applied to the testing data to make predictions. These predictions are compared against the actual values to assess the model's accuracy and robustness. The cross-validation procedure helps ensure that the models generalize well to unseen data and provide reliable predictions in real-world scenarios, enhancing the overall reliability of the analysis.
 
 The provided code implements a cross-validation procedure for evaluating Poisson regression models applied to the dataset `final_net`. It defines a function `crossValidate()` to conduct cross-validation, where the dataset is split into distinct folds (`cvID`) for training and testing. Within each fold, a Poisson regression model is trained using the training data (`fold.train`) and then applied to the testing data (`fold.test`) to make predictions. These predictions are aggregated across all folds to assess the overall predictive performance of the model. The cross-validation helps validate the model's ability to generalize to unseen data, ensuring the reliability of the regression analysis.
+
+### Variable Selection
+
+Based on the correlation analysis, variables such as 'Vacant Building Distance', 'Affordable Housing Distance', 'Green Space Distance', 'Building Demolition Distance', 'Median Household Income', 'Percent Below Poverty Line', 'Percent Unemployed', and 'Percent Owner Occupied' are selected as model variables. 
+
 ```{r regression, results='hide', warning = FALSE, message = FALSE}
 
 ## define the variables we want
@@ -804,6 +797,9 @@ crossValidate <- function(dataset, id, dependentVariable, indVariables) {
 }
 ```
 
+### Cross Validation
+
+This shows the process of conducting cross-validation on Poisson regression models using the crossValidate function, aimed at predicting the number of construction permits (countPermits) in Philadelphia neighborhoods. Different models are being evaluated: a non-spatial process model using a defined set of variables (reg.vars) and a spatial process model, which integrates spatial characteristics along with the same set of variables to understand how including spatial data influences the accuracy and predictiveness of the model outcomes. This cross-validation approach helps in assessing the model's robustness and generalizability by testing it on multiple subsets of data.
 
 ```{r cross validation, results='hide', warning = FALSE, message = FALSE}
 
@@ -840,6 +836,10 @@ reg.ss.spatialCV <- crossValidate(
     dplyr::select(cvID = name, countPermits, Prediction, geometry)
 ```
 
+### Error Calculation
+
+In each regression, the absolute error is determined by calculating the difference between the predicted and the actual observed counts of new construction permits.
+
 ```{r regression errors, results='hide', warning = FALSE, message = FALSE}
 # calculate errors
 
@@ -858,6 +858,7 @@ reg.summary <-
                              Regression = "Spatial LOGO-CV: Spatial Process")) %>%
     st_sf()
 ```
+
 
 ``` {r errors, results='hide', warning = FALSE, message = FALSE}
 
@@ -920,6 +921,7 @@ st_drop_geometry(error_by_reg_and_fold) %>%
 
 ```
 The areas with some of the greatest mean absolute error are closer to center city, such as Fishtown, University City, and Graduate Hospital. Regions of Philadelphia close to the North, West, South, and along the Delaware river showed lower errors, both in terms of just risk factors and spatial process. There was higher error shown in the Spatial LOGO-CV process than the other validation methods. The random k-fold processes resulted in lower mean absolute error.
+
 ``` {r morans i errors, results='hide', warning = FALSE, message = FALSE}
 # Assuming 'error_by_reg_and_fold' contains the necessary columns and spatial data
 # First, ensure that your data frame has the appropriate structure and unique row names
@@ -953,7 +955,7 @@ filter(error_by_reg_and_fold, str_detect(Regression, "LOGO"))  %>%
 
 
 ```
-
+This displays the residuals of different regression models used to predict new construction permits, segmented by model type. From the plot, it's evident that the distribution of residuals varies across the models, with some showing a tighter cluster around the zero line (indicating better prediction accuracy) and others displaying more spread, suggesting less precision. 
 
 ```{r residuals, results='hide', warning = FALSE, message = FALSE}
 
@@ -979,6 +981,9 @@ ggplot(reg.summary, aes(x = Prediction, y = Residuals, color = Regression)) +
 
 ```
 
+### Kernel Density
+
+The series of plots provided illustrate the spatial distribution of construction permits in Philadelphia using kernel density estimates with different search radii and a comparison of these estimates with spatial risk predictions. The first set of images shows kernel density maps for construction permits using three different search radii (1000 ft., 1500 ft., and 2000 ft.). As the search radius increases, the density map becomes smoother and broader, indicating a generalization in the concentration of construction activity across the city. This helps identify which areas are experiencing high volumes of construction relative to others, potentially pointing to hotspots of development or gentrification.
 
 ```{r kd, results='hide', warning = FALSE, message = FALSE}
 # demo of kernel width
@@ -1016,7 +1021,9 @@ as.data.frame(permits_KD.1000) %>%
      labs(title = "Kernel density of Construction Permits") +
      theme_void()
 ```
+### Comparing models
 
+The plots below delve deeper by overlaying actual permit locations on the density estimates and comparing these against spatial risk predictions. These risk predictions categorize areas based on the predicted level of construction activity (from "Minimal" to "Very High" risk), allowing for a nuanced understanding of development intensity. These visualizations are crucial as they highlight areas where infrastructure and regulations might need to be reassessed due to rapid development. Specifically, areas classified as "Very High Risk" may require more attention to manage the impacts of gentrification, such as displacement and changes in the socio-economic fabric. 
 
 ``` {r kd_spatial, results='hide', warning = FALSE, message = FALSE}
 
@@ -1085,6 +1092,7 @@ rbind(permits_KD_sf_2022, permits_KD_risk_sf_2022) %>%
 
 ```
 
+The chart below reveals significant differences in the distribution of predicted permit counts between the two models. Spatial Risk Predictions consistently estimate higher rates of permits across all risk categories when compared to Kernel Density Estimates, with particularly stark contrasts in the "Very High Risk" and "Low Risk" categories. This suggests that the Spatial Risk Prediction model may be more sensitive to factors that predict higher construction activity, potentially providing a more dynamic or nuanced insight into the spatial distribution of construction risk compared to the more generalized Kernel Density approach.
 
 ``` {r comparison bar plots, results='hide', warning = FALSE, message = FALSE}
 
@@ -1115,12 +1123,13 @@ rbind(permits_KD_sf_2022, permits_KD_risk_sf_2022) %>%
 
 ### Risk Mapping
 
+Neighborhoods that may be at a high risk of gentrification by the proxy of new construction permits are mostly located near center city. Most of West Philadelphia, a large portion of North Philadelphia, and some parts of the Northwest are at risk of gentrification. The highest risk neighborhoods are Point Breeze, Fishtown, Rittenhouse, and Northern Liberties. 
+
+In addition to these areas, large swathes of West Philadelphia and significant portions of North Philadelphia, as well as some parts of the Northwest, are depicted as moderate to high risk. This extensive distribution suggests a broad impact of development that may influence housing markets, demographic shifts, and local economies across a considerable part of the city. 
+
 ``` {r risk map, results='hide', warning = FALSE, message = FALSE}
 # Assigning Risk Categories for Predictions
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
 permit_risk_sf_2022 <-
   filter(reg.summary, Regression == "Spatial LOGO-CV: Spatial Process") %>%
   mutate(label = "Spatial Risk Predictions",
@@ -1176,20 +1185,13 @@ ggplot(highest_risk_nhoods) +
 
 
 ```
-Neighborhoods that may be at a high risk of gentrification by the proxy of new construction permits are mostly located near center city. Most of West Philadelphia, a large portion of North Philadelphia, and some parts of the Northwest are at risk of gentrification. The highest risk neighborhoods are Point Breeze, Fishtown, Rittenhouse, and Northern Liberties.
+The implications of such widespread development are complex, potentially leading to increased property values and living costs, which could displace long-standing residents and alter the cultural fabric of these neighborhoods. The maps help identify where proactive measures might be necessary to mitigate the adverse effects of gentrification, such as promoting affordable housing initiatives and supporting local businesses to preserve neighborhood character and inclusivity.
 
-<<<<<<< Updated upstream
+## Comparing to a different time
+
+Let's see how our model performed relative to KD on another year's data. Comparing the spatial risk predictions and kernel density estimates from 2013 to 2022 in Philadelphia, there is a noticeable shift in risk distribution and the concentration of predicted permit counts. In 2013, the very high-risk categories were predominantly emphasized in the kernel density model, indicating a higher concentration of construction activity in a few areas. By 2022, the spatial risk predictions model shows a more distributed risk across the city, with a significant portion of the city classified under very high risk, suggesting an expansion in areas targeted for new construction. This shift could imply a broadening of development focus, potentially spreading gentrification pressures more widely across Philadelphia. This comparison highlights the dynamic nature of urban development and the increasing spread of high-risk areas over the years, necessitating updated and responsive planning and policy measures.
+
 ```{r 2013 data, results='hide', warning = FALSE, message = FALSE}
-=======
-
-## Getting Chicago city data
-
-Let's see how our model performed relative to KD on the following year's data.
-=======
-### Comparing to a different time
-
-```{r 2013 data}
->>>>>>> Stashed changes
 
 permits_KD_sf_2013 <- as.data.frame(permits_KD.1500) %>%
   st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
@@ -1272,8 +1274,6 @@ rbind(permits_KD_risk_sf_2013, permits_KD_risk_sf_2022) %>%
 
 ```
 
-
- 
 ```{r comp bar, results='hide', warning = FALSE, message = FALSE}
 rbind(permits_KD_sf_2013, permits_KD_risk_sf_2013) %>%
   st_drop_geometry() %>%
@@ -1287,25 +1287,22 @@ rbind(permits_KD_sf_2013, permits_KD_risk_sf_2013) %>%
     ggplot(aes(Risk_Level,Pcnt_cnst_permits)) +
       geom_bar(aes(fill=label), position="dodge", stat="identity") +
       scale_fill_viridis(discrete = TRUE, name = "Model") +
-      labs(title = "Risk prediction vs. Kernel density, 2013 assaults",
-           y = "% of Test Set Assaults (per model)",
-           x = "Risk Category") +
+      labs(title = "Risk prediction vs. Kernel density, 2013",
+           y = "% of Test Set (per model)",
+           x = "Risk Level") +
   theme_bw() +
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
 ```
 
-<<<<<<< Updated upstream
-### Conclusion
-=======
->>>>>>> Stashed changes
+## Conclusion
 
 The model can be used to plan for future policy that can protect legacy residents and small businesses of neighborhoods that are at risk by identifying the neighborhoods where gentrification can occur. This model was built with respect to new construction, permitting, and demolition data, among other predictors. From this analysis, it was identified that many neighborhoods in the region surrounding Center City Philadelphia are at risk for gentrification, especially Point Breeze, Rittenhouse, and river-adjacent neighborhoods like East Kensington, Fishtown, and Northern Liberties.
 
 Our work can be used to inform planning decisions that will be carried out by the Office of Innovation and Technology and the Smart Cities office. While it can be a useful tool, it should be used in tandem with other tools to predict and plan for gentrification in different neighborhoods. The staff at Marie Antoinette Predictions chose variables that were possibly predictors of gentrification, but we did not account for everything that could affect and become a predictor for gentrification. The existence and disappearance of civic assets like schools, libraries, green spaces, and public spaces could be markers of possible gentrification that are not tied to the data used in the model. 
 
-Additionally, there are different situations and nuances of displacement that cannot be captured in the data. Predicting the order and timeline displacement is a further challenge that OIT and the Smart Cities office could tackle. Direct displacement, or the phenomenon of when residents can no longer afford to live in their homes because of rising costs, would occur first with the proposals and new constructions and other types of permits^8^. Indirect displacement occurs when higher income residents move into an area when lower income residents move out. This can be captured through census data, in the median income or income bracket breakdown, to see the financial landscape of the neighborhood change^9^. Finally, there is cultural displacement that occurs when civic assets change. Shops change to focus their customer base on new people, and it broadly feels like the neighborhood has transformed^10^. A model that can track a neighborhood using data throughout these phases is one that should be used by the city to identify gentrification. 
+Additionally, there are different situations and nuances of displacement that cannot be captured in the data. Predicting the order and timeline displacement is a further challenge that OIT and the Smart Cities office could tackle. Direct displacement, or the phenomenon of when residents can no longer afford to live in their homes because of rising costs, would occur first with the proposals and new constructions and other types of permits^8^. Indirect displacement occurs when higher income residents move into an area when lower income residents move out. This can be captured through census data, in the median income or income bracket breakdown, to see the financial landscape of the neighborhood change. Finally, there is cultural displacement that occurs when civic assets change. Shops change to focus their customer base on new people, and it broadly feels like the neighborhood has transformed^10^. A model that can track a neighborhood using data throughout these phases is one that should be used by the city to identify gentrification. 
 
-### References
+## References
 
 1. https://whyy.org/articles/philadelphia-americas-poorest-big-city-poverty/
 2. https://www.pewtrusts.org/-/media/assets/2020/09/phillyhousingreport.pdf
