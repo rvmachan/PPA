@@ -8,10 +8,17 @@ output:
     theme: journal  
 ---
 
+<<<<<<< HEAD
+*TO:* Akshay Malik, City of Philadelphia, Smart Cities Director
+*FROM:* Kamya Khandelwal, Revathi Machan, Claudia Schreier
+*DATE:* 13 May 2024
+*RE:* Predictive modeling for gentrification in Philadelphia
+=======
 **TO:** Akshay Malik, City of Philadelphia Smart Cities Director
 **FROM:** Kamya Khandelwal, Revathi Machan, Claudia Schreier
 **DATE:** 13 May 2024
 **RE:** Predictive modeling for gentrification in Philadelphia
+>>>>>>> 2a4712811258811a49560cfd06321ccfeee3d732
 
 ### Gentrification in Phildelphia 
 
@@ -247,6 +254,11 @@ cnstPermits <- phlPermits %>%
 demoPermits <- phlPermits %>%
   filter(newType == 'DEMOLITION PERMIT')
 
+cnstPermits_2022 <- cnstPermits%>%
+  filter(Year==2022)
+
+cnstPermits_2013 <- cnstPermits%>%
+  filter(Year == 2013)
 ```
 
 
@@ -602,14 +614,14 @@ for(i in vars){
       theme_void() + theme(legend.position="bottom")}
 
 do.call(grid.arrange,c(varList, ncol = 4, top = "Local Morans I Statistics, Construction Permits"))
-saveRDS(local_morans, file = "")
+saveRDS(local_morans, file = "local_morans.rds")
 ```
 
 
 
 ```{r lmi_hotspot,results = 'hide', message = FALSE, warning = FALSE}
 
-local_morans <- readRDS("")
+local_morans <- readRDS("local_morans.rds")
 
 final_net <- final_net %>%
   mutate(permit.isSig = ifelse(local_morans[,5] <= 0.0000001,1,0)) %>%
@@ -967,100 +979,277 @@ as.data.frame(permits_KD.1000) %>%
      theme_void()
 ```
 
-### Comparing to a different time
 
-```{r 2018 data}
-assault18 <- 
-  read.socrata("https://data.cityofchicago.org/Public-Safety/Crimes-2018/3i3m-jwuy") %>% 
-  filter(Primary.Type == "ASSAULT") %>%
-  mutate(x = gsub("[()]", "", Location)) %>%
-  separate(x,into= c("Y","X"), sep=",") %>%
-  mutate(X = as.numeric(X),
-         Y = as.numeric(Y)) %>% 
-  na.omit %>%
-  st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%
-  st_transform('ESRI:102271') %>% 
-  distinct() %>%
-  .[fishnet,]
-```
+``` {r kd_spatial, results='hide', warning = FALSE, message = FALSE}
 
-```{r new}
+# Prediction by Kernel Density Model
 
-as_KDE_sum <- as.data.frame(as_KD.1000) %>%
+permits_KD_sf_2022 <- as.data.frame(permits_KD.1500) %>%
   st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
-  aggregate(., final_net, mean) 
-kde_breaks <- classIntervals(as_KDE_sum$value, 
-                             n = 5, "fisher")
-as_KDE_sf <- as_KDE_sum %>%
-  mutate(label = "Kernel Density",
-         Risk_Category = classInt::findCols(kde_breaks),
-         Risk_Category = case_when(
-           Risk_Category == 5 ~ "5th",
-           Risk_Category == 4 ~ "4th",
-           Risk_Category == 3 ~ "3rd",
-           Risk_Category == 2 ~ "2nd",
-           Risk_Category == 1 ~ "1st")) %>%
+  aggregate(., final_net, mean) %>%
+  mutate(label = "Kernel Density Estimates",
+         Risk_Level = ntile(value, 5),  # Change granularity of risk levels
+         Risk_Level = case_when(
+           Risk_Level == 5 ~ "Very High Risk",
+           Risk_Level == 4 ~ "High Risk",
+           Risk_Level == 3 ~ "Moderate Risk",
+           Risk_Level == 2 ~ "Low Risk",
+           TRUE ~ "Minimal Risk")) %>%
   cbind(
     aggregate(
-      dplyr::select(assault18) %>% mutate(asCount = 1), ., sum) %>%
-    mutate(asCount = replace_na(asCount, 0))) %>%
-  dplyr::select(label, Risk_Category, asCount)
+      dplyr::select(cnstPermits_2022) %>% mutate(permitCount = 1), ., sum) %>%
+      mutate(permitCount = replace_na(permitCount, 0))) %>%
+  dplyr::select(label, Risk_Level, permitCount)
+
+# Prediction by Risk Prediction Model
+
+permits_KD_risk_sf_2022 <-
+  reg.ss.spatialCV %>%
+  mutate(label = "Spatial Risk Predictions",
+         Risk_Level = ntile(Prediction, 5),
+         Risk_Level = case_when(
+           Risk_Level == 5 ~ "Very High Risk",
+           Risk_Level == 4 ~ "High Risk",
+           Risk_Level == 3 ~ "Moderate Risk",
+           Risk_Level == 2 ~ "Low Risk",
+           TRUE ~ "Minimal Risk")) %>%
+   cbind(
+    aggregate(
+      dplyr::select(cnstPermits_2022) %>% mutate(permitCount = 1), ., sum) %>%
+      mutate(permitCount = replace_na(permitCount, 0))) %>%
+  dplyr::select(label, Risk_Level, permitCount)
+
+unique(permits_KD_sf_2022$Risk_Level)  # Check for the 'permits_KD_sf' dataset
+unique(permits_KD_risk_sf_2022$Risk_Level)  # Check for the 'permits_KD_risk_sf' dataset
+
+summary(permits_KD_sf_2022$Risk_Level)
+summary(permits_KD_risk_sf_2022$Risk_Level)
+
+# Ensure 'option' and 'direction' are set to handle fewer categories
+scale_fill_viridis_d(option = "plasma", direction = 1, begin = 0, end = 1, name = "Risk Level")
+
+# Plotting comparison between both models
+
+rbind(permits_KD_sf_2022, permits_KD_risk_sf_2022) %>%
+  na.omit() %>%
+  gather(Variable, Value, -label, -Risk_Level, -geometry) %>%
+  ggplot() +
+  geom_sf(aes(fill = Risk_Level), colour = NA) +
+  geom_sf(data = sample_n(cnstPermits_2022, 1130), size = .5, colour = "black") +
+  facet_wrap(~label, ) +
+  scale_fill_viridis_d(option = "plasma",
+                       name = 'Risk Level') + 
+  labs(title="Comparison of Kernel Density and Risk Predictions",
+       subtitle="Bottom Layer is 2022 Predicted Permit Counts.\nDots are observed 2022 Permit Counts.\n",
+       caption = 'Figure 19') +
+  mapTheme() +
+  plotTheme()
+
 ```
 
-```{r comp}
-ml_breaks <- classIntervals(reg.ss.spatialCV$Prediction, 
-                             n = 5, "fisher")
-as_risk_sf <-
-  reg.ss.spatialCV %>%
-  mutate(label = "Risk Predictions",
-         Risk_Category =classInt::findCols(ml_breaks),
-         Risk_Category = case_when(
-           Risk_Category == 5 ~ "5th",
-           Risk_Category == 4 ~ "4th",
-           Risk_Category == 3 ~ "3rd",
-           Risk_Category == 2 ~ "2nd",
-           Risk_Category == 1 ~ "1st")) %>%
+
+``` {r comparison bar plots}
+
+# Comparison of predictions - Bar Plots
+
+rbind(permits_KD_sf, permits_KD_risk_sf) %>%
+  st_set_geometry(NULL) %>% 
+  na.omit() %>%
+  gather(Variable, Value, -label, -Risk_Level) %>%
+  group_by(label, Risk_Level) %>%
+  summarize(permitCount = sum(Value)) %>%
+  ungroup() %>%
+  group_by(label) %>%
+  mutate(Rate_of_permit_count = permitCount / sum(permitCount)) %>%
+  ggplot(aes(Risk_Level,Rate_of_permit_count)) +
+  geom_bar(aes(fill=label), position="dodge", stat="identity") +
+  scale_fill_viridis_d(option = "plasma",
+                       name = 'Model') +
+  labs(title = "Risk Prediction vs. Kernel Density",
+       subtitle = 'Philadelphia, PA',
+       caption = 'Figure 20',
+       x = 'Risk Level',
+       y = 'Rate of Permit Counts') +
+  plotTheme()
+
+
+```
+## Risk Map
+
+``` {r risk map}
+# Assigning Risk Categories for Predictions
+
+permit_risk_sf <-
+  filter(reg.summary, Regression == "Spatial LOGO-CV: Spatial Process") %>%
+  mutate(label = "Spatial Risk Predictions",
+         Risk_Level = ntile(Prediction, 5),
+         Risk_Level = case_when(
+           Risk_Level == 5 ~ "Very High Risk",
+           Risk_Level == 4 ~ "High Risk",
+           Risk_Level == 3 ~ "Moderate Risk",
+           Risk_Level == 2 ~ "Low Risk",
+           TRUE ~ "Minimal Risk"))
+
+
+permit_risk_sf %>%
+  gather(Variable, Value, -label, -Risk_Level, -geometry) %>%
+  ggplot() +
+    geom_sf(aes(fill = Risk_Level), colour = NA) +
+    geom_sf(data=phillyNeighborhoods, fill = "transparent") +
+    scale_fill_viridis(discrete = TRUE) +
+    labs(title="Risk Predictions",
+         subtitle="New Construction Permit Predictions",
+         caption="Figure 20") +
+    mapTheme()+
+    plotTheme()
+
+
+```
+
+``` {r highest risk neighborhood}
+
+# Neighborhoods at highest risk of permitting construction
+
+highest_risk_nhoods <-
+  permit_risk_sf %>%
+  dplyr::select(cvID, Risk_Level, countPermits) %>%
+  dplyr::filter(., Risk_Level == "Very High Risk") %>%  # Adjusted to match the new risk category
+  st_drop_geometry() %>%
+  group_by(cvID) %>%
+  summarise(Predicted_Permits = sum(countPermits)) %>%
+  dplyr::filter(., Predicted_Permits > 52) %>%
+  arrange(., desc(Predicted_Permits)) %>%
+  rename(Neighborhood = cvID)
+
+# Plotting the highest risk neighborhoods
+ggplot(highest_risk_nhoods) +
+  geom_bar(aes(x = reorder(Neighborhood, -Predicted_Permits), y = Predicted_Permits), fill = "#FE9900", stat = "identity", width = 0.5) +
+  labs(x = "Neighborhood", y = "Predicted Permits", 
+       title = "Neighborhoods with Very High Permitting Risk", subtitle = 'Philadelphia, PA', caption = "Figure 21") +
+  theme(axis.text.x = element_text(size = 6, angle = 60, vjust = 0.7, hjust = 0.7),
+        axis.text.y = element_text(size = 6),
+        axis.title = element_text(size = 8), 
+        plot.title = element_text(size = 9, face = "bold", color = "darkred"),
+        plot.subtitle = element_text(size = 7, face = "italic", color = "black"),
+        plot.margin = margin(0, 50, 8, 50, "pt"))
+
+
+```
+
+
+## Getting Chicago city data
+
+Let's see how our model performed relative to KD on the following year's data.
+=======
+### Comparing to a different time
+>>>>>>> 2a4712811258811a49560cfd06321ccfeee3d732
+
+```{r 2013 data}
+
+permits_KD_sf_2013 <- as.data.frame(permits_KD.1500) %>%
+  st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
+  aggregate(., final_net, mean) %>%
+  mutate(label = "Kernel Density Estimates",
+         Risk_Level = ntile(value, 5),  # Change granularity of risk levels
+         Risk_Level = case_when(
+           Risk_Level == 5 ~ "Very High Risk",
+           Risk_Level == 4 ~ "High Risk",
+           Risk_Level == 3 ~ "Moderate Risk",
+           Risk_Level == 2 ~ "Low Risk",
+           TRUE ~ "Minimal Risk")) %>%
   cbind(
     aggregate(
-      dplyr::select(assault18) %>% mutate(asCount = 1), ., sum) %>%
-      mutate(asCount = replace_na(asCount, 0))) %>%
-  dplyr::select(label,Risk_Category, asCount)
+      dplyr::select(cnstPermits_2013) %>% mutate(permitCount = 1), ., sum) %>%
+      mutate(permitCount = replace_na(permitCount, 0))) %>%
+  dplyr::select(label, Risk_Level, permitCount)
+
+# Prediction by Risk Prediction Model
+
+permits_KD_risk_sf_2013 <-
+  reg.ss.spatialCV %>%
+  mutate(label = "Spatial Risk Predictions",
+         Risk_Level = ntile(Prediction, 5),
+         Risk_Level = case_when(
+           Risk_Level == 5 ~ "Very High Risk",
+           Risk_Level == 4 ~ "High Risk",
+           Risk_Level == 3 ~ "Moderate Risk",
+           Risk_Level == 2 ~ "Low Risk",
+           TRUE ~ "Minimal Risk")) %>%
+   cbind(
+    aggregate(
+      dplyr::select(cnstPermits_2013) %>% mutate(permitCount = 1), ., sum) %>%
+      mutate(permitCount = replace_na(permitCount, 0))) %>%
+  dplyr::select(label, Risk_Level, permitCount)
+
+unique(permits_KD_sf_2013$Risk_Level)  # Check for the 'permits_KD_sf' dataset
+unique(permits_KD_risk_sf_2013$Risk_Level)  # Check for the 'permits_KD_risk_sf' dataset
+
+summary(permits_KD_sf_2013$Risk_Level)
+summary(permits_KD_risk_sf_2013$Risk_Level)
+
+# Ensure 'option' and 'direction' are set to handle fewer categories
+scale_fill_viridis_d(option = "plasma", direction = 1, begin = 0, end = 1, name = "Risk Level")
+
+# Plotting comparison between both models
+
+rbind(permits_KD_sf_2013, permits_KD_risk_sf_2013) %>%
+  na.omit() %>%
+  gather(Variable, Value, -label, -Risk_Level, -geometry) %>%
+  ggplot() +
+  geom_sf(aes(fill = Risk_Level), colour = NA) +
+  geom_sf(data = sample_n(cnstPermits_2013, 1130), size = .5, colour = "black") +
+  facet_wrap(~label, ) +
+  scale_fill_viridis_d(option = "plasma",
+                       name = 'Risk Level') + 
+  labs(title="Comparison of Kernel Density and Risk Predictions",
+       subtitle="Bottom Layer is 2013 Predicted Permit Counts.\nDots are observed 2013 Permit Counts.\n",
+       caption = 'Figure __') +
+  mapTheme() +
+  plotTheme()
+
 ```
+
+
 
  
 ```{r comp plot}
-rbind(as_KDE_sf, as_risk_sf) %>%
+rbind(permits_KD_risk_sf_2013, permits_KD_risk_sf_2022) %>%
   na.omit() %>%
-  gather(Variable, Value, -label, -Risk_Category, -geometry) %>%
+  gather(Variable, Value, -label, -Risk_Level, -geometry) %>%
   ggplot() +
-    geom_sf(aes(fill = Risk_Category), colour = NA) +
-    geom_sf(data = sample_n(assault18, 3000), size = .5, colour = "black") +
+    geom_sf(aes(fill = Risk_Level), colour = NA) +
+    geom_sf(data = sample_n(cnstPermits, 3000), size = .5, colour = "black") +
     facet_wrap(~label, ) +
     scale_fill_viridis(discrete = TRUE) +
     labs(title="Comparison of Kernel Density and Risk Predictions",
-         subtitle="2017 assault risk predictions; 2018 assault") +
-    mapTheme(title_size = 14)
+         subtitle="2013 Construction Permits Density; 2022 Construction Permits Density") +
+    mapTheme()
+
 ```
+
+
  
 ```{r comp bar}
-rbind(as_KDE_sf, as_risk_sf) %>%
+rbind(permits_KD_sf_2013, permits_KD_risk_sf_2013) %>%
   st_drop_geometry() %>%
   na.omit() %>%
-  gather(Variable, Value, -label, -Risk_Category) %>%
-  group_by(label, Risk_Category) %>%
-  summarize(countAssault = sum(Value)) %>%
+  gather(Variable, Value, -label, -Risk_Level) %>%
+  group_by(label, Risk_Level) %>%
+  summarize(countPermits = sum(Value)) %>%
   ungroup() %>%
   group_by(label) %>%
-  mutate(Pcnt_of_test_set_crimes = countAssault / sum(countAssault)) %>%
-    ggplot(aes(Risk_Category,Pcnt_of_test_set_crimes)) +
+  mutate(Pcnt_cnst_permits = countPermits / sum(countPermits)) %>%
+    ggplot(aes(Risk_Level,Pcnt_cnst_permits)) +
       geom_bar(aes(fill=label), position="dodge", stat="identity") +
       scale_fill_viridis(discrete = TRUE, name = "Model") +
-      labs(title = "Risk prediction vs. Kernel density, 2018 assaults",
+      labs(title = "Risk prediction vs. Kernel density, 2013 assaults",
            y = "% of Test Set Assaults (per model)",
            x = "Risk Category") +
   theme_bw() +
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
 ```
+
+## Getting Chicago city data
 
 ## Conclusion
 **input some sort of result about the model**
