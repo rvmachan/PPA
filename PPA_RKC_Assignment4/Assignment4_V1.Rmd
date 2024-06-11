@@ -1,0 +1,398 @@
+---
+title: "Can recidivism be predicted?"
+author: "Kamya Khandelwal, Revathi V. Machan, Claudia Schreier"
+date: "May 14, 2024"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    theme: journal 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+# Recidivism in the State of Georgia
+
+As a side quest from his mission of removing reproductive rights as the Governor of Georgia, Brian Kemp has asked the team at Marie Antoinette Predictions (MAP) to create a model to predict recidivism, or the probability that someone convicted of a crime will be convicted of another crime in the future. Georgia is one of the leading states with the highest per capita amount of people under correctional supervision. Nationally, around 65 percent of formerly incarcerated people will reoffend, and 30 percent of people will find themselves back in prison within three years, making this issue one of high importance for criminal justice reforms. Recidivism costs the state a lot of money, from continued legal fees and resources for incarcerated individuals. Research about recidivism has been embedded into the management framework of the National Institute of Justice (NIJ), an organization that sponsors government-funded criminal justice research. the NIJ believes that studying recidivism is "one of the most fundamental concepts in criminal justice" because it is something that prison re-entry programs actively are designed to avoid. 
+
+## Introducing our work
+
+Recidivism is a concept to study in a data-driven approach. MAP obtained a dataset from the NIG with re-entry data, including the original crime, some demographic information, and other types of personal information about the incarcerated individual, along with whether or not the person was convicted of another crime. Using linear models, we can predict whether or not a person will be convicted of a second crime after leaving prison.
+
+The models that are created to predict recidivism can either prioritize specificity or sensitivity. Specificity is the ability of a test to correctly identify true negatives. In this case, a true negative would be that Marie Antoinette Predictions predicts that recidivism will not occur, but it will. A high specificity model indicates that there is a low rate of false positives. Sensitivity is the ability of a test to correctly identify true positives. A high sensitivity model indicates that that there is a low rate of false negatives; for recidivism, this means that the model correctly identifies individuals who will be convicted of another crime after previously being incarcerated. There are benefits and drawbacks to both high sensitivities and specificities, but there usually cannot be both. In either case, there will be a group of individuals who in prediction are mis-classified. What kind of error will Governor Brian Kemp accept in reforming Georgia's criminal justice system?
+
+```{r load_packages, warning = FALSE, include = FALSE}
+options(scipen=10000000)
+
+
+if(!require(pacman)){install.packages("pacman"); library(pacman)}
+p_load(tidyverse, kableExtra, caret, knitr, pscl, plotROC, pROC, lubridate, sf, tidycensus, RSocrata, viridis, spatstat, raster, spdep, FNN, grid, gridExtra, classInt, mice)
+
+root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
+source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
+
+```
+
+```{r load_data, cache = TRUE, include = FALSE}
+palette5 <- c("#981FAC","#CB0F8B","#FF006A","#FE4C35","#FE9900")
+palette4 <- c("#981FAC","#FF006A","#FE4C35","#FE9900")
+palette2 <- c("#981FAC","#FF006A")
+
+policeDistricts <- 
+  st_read("https://data.cityofchicago.org/api/geospatial/fthy-xz3r?method=export&format=GeoJSON") %>%
+  st_transform('ESRI:102271') %>%  
+  dplyr::select(District = dist_num)  
+
+# Read and process police beats data
+policeBeats <- 
+  st_read("https://data.cityofchicago.org/api/geospatial/aerh-rz74?method=export&format=GeoJSON") %>%
+  st_transform('ESRI:102271') %>%  
+  dplyr::select(District = beat_num)  
+
+# Combine police districts and beats data into one dataframe
+bothPoliceUnits <- rbind(
+  mutate(policeDistricts, Legend = "Police Districts"), 
+  mutate(policeBeats, Legend = "Police Beats")  
+)
+
+#Read and process deceptive practice data
+deceptivePractice <- 
+  read.socrata("https://data.cityofchicago.org/Public-Safety/Crimes-2017/d62x-nvdr") %>% 
+  filter(Primary.Type == "DECEPTIVE PRACTICE") %>%  
+  mutate(x = gsub("[()]", "", Location)) %>%  
+  separate(x, into = c("Y", "X"), sep = ",") %>%  
+  mutate(X = as.numeric(X), Y = as.numeric(Y)) %>%  
+  na.omit() %>%  
+  st_as_sf(coords = c("X", "Y"), crs = 4326, agr = "constant") %>%  
+  st_transform('ESRI:102271') %>% 
+  distinct()  
+
+rDivism <-
+  read_csv("https://data.ojp.usdoj.gov/resource/ynf5-u8nk.csv")
+
+```
+
+
+# Exploring our model's components
+This code chunk performs several operations on our recidivism dataset `rDivism`. We selected the following  variables `gender`, `gang_affiliated`, `age_at_release`, `education_level`, `prison_offense`, `prison_years`, `recidivism_within_3years`, and then gather these selected columns into key-value pairs to reshape the data. We do this so that the grouped bar plot visualizes the associations between different features and the likelihood of recidivism within 3 years, providing insights into potential predictive factors for recidivism.
+```{r exploratory_continuous, results = 'hide'}
+rDivism %>%
+  dplyr::select(gender,gang_affiliated, age_at_release, education_level, prison_offense, prison_years, recidivism_within_3years) %>%
+  gather(Variable, value, -recidivism_within_3years) %>%
+    ggplot(aes(recidivism_within_3years, value, fill=recidivism_within_3years)) + 
+      geom_bar(position = "dodge", stat = "summary", fun = "mean") + 
+      facet_wrap(~Variable, scales = "free") +
+      scale_fill_manual(values = palette2) +
+      labs(x="Recidivism", y="Value", 
+           title = "Feature associations with the likelihood of recidivism",
+           subtitle = "(continous outcomes)") +
+      theme(legend.position = "none")
+```
+
+
+This code chunk visualizes the distribution of different features, comparing those who experienced recidivism within three years against those who did not, offering insights into the potential differences in feature distributions between the two groups.
+```{r exploratory_continuous_density, message = FALSE, warning = FALSE, results = 'hide'}
+rDivism %>%
+    dplyr::select(gender,gang_affiliated, age_at_release, education_level, prison_offense, prison_years, recidivism_within_3years) %>%
+    gather(Variable, value, -recidivism_within_3years) %>%
+    ggplot() + 
+    geom_density(aes(value, color=recidivism_within_3years), fill = "transparent") + 
+    facet_wrap(~Variable, scales = "free") +
+    scale_fill_manual(values = palette2) +
+    labs(title = "Feature distributions recidivism vs. no recidivism",
+         subtitle = "(continous outcomes)")
+```
+The code displays grouped bar plots that illustrate the association between various features (variables like gender, prison offense, prison years) and the likelihood of recidivism. Each bar represents the count of occurrences for different values of the features, separated by the outcome of recidivism (whether it occurred or not). The facet grid arrangement allows for easy comparison across different variables, while the color differentiation helps distinguish between the two recidivism outcomes. This visualization provides insights into how different factors may influence the likelihood of recidivism.
+```{r exploratory_binary, message = FALSE, warning = FALSE}
+rDivism %>%
+    dplyr::select(gender, prison_offense, prison_years, recidivism_within_3years) %>%
+    gather(Variable, value, -recidivism_within_3years) %>%
+    count(Variable, value, recidivism_within_3years) %>%
+      ggplot(., aes(value, n, fill = recidivism_within_3years)) +   
+        geom_bar(position = "dodge", stat="identity") +
+        facet_wrap(~Variable, scales="free") +
+        scale_fill_manual(values = palette2) +
+        labs(x="Click", y="Value",
+             title = "Feature associations with the likelihood of recidivism",
+             subtitle = "Categorical features") +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+This code chunk initially groups the dataset `rDivism` by `prison_offense`, calculating the total count of `recidivism_within_3years` within each group, as well as the total count of observations and the national recidivism rate. We categorize individuals into age groups based on `age_at_release`, assigning them labels such as "Young", "Middle Aged", "Old", and "Very Old", and convert specific variables (`prior_arrest_episodes_misd` and `prior_arrest_episodes_felony`) into factors, replacing categories like "6 or more" and "10 or more" with numerical factors "6" and "10", respectively. We do this so that we can better categorize and track what times recidivism is at its highest.
+```{r country_variables, cache = TRUE}
+rDivism <- 
+  rDivism %>% 
+  group_by(prison_offense) %>% 
+  summarize(totRD = sum(recidivism_within_3years), #except this is not a numeric thing its a binary thing 
+            n = n(), 
+            nationalrDivism = 100*(totRD/n)) %>%
+  dplyr::select(-n, -totRD) %>%
+  right_join(rDivism, .) %>%
+    mutate(ageTimeFrame = case_when(age_at_release <= 32 ~ "Young",
+                                  age_at_release > 33 & age_at_release <= 42 ~ "Middle Aged", 
+                                  age_at_release > 43 & age_at_release <= 48 ~ "Old",
+                                  age_at_release > 48 ~ "Very Old"))
+
+rDivism <- rDivism %>%
+  mutate(prior_arrest_episodes_misd = as.factor(ifelse(prior_arrest_episodes_misd == "6 or more", "6", prior_arrest_episodes_misd)),
+         prior_arrest_episodes_felony = as.factor(ifelse(prior_arrest_episodes_felony == "10 or more", "10", prior_arrest_episodes_felony)))
+```
+
+# Creating a logistic regression model
+
+Our logistic regression model predicts a binary outcome. For Brian Kemp, that means there are two (2) options - a *1* or a *0*. A 1 indicates that there was recidivism, and a 0 indicates that were was not. There are also associates probabilities that can affet the outcome depending on the specific variables in the model. To create and test this model, we took our large NIJ dataset and split it into two equal parts - a training and a testing dataset. 
+
+When running the model, the depending variable is called 'rDivismNumeric' which is the binary outcome of recidivism instead of a TRUE/FALSE outcome. 
+
+```{r create_partition, results = 'hide'}
+set.seed(3456)
+
+rDivism$rDivismNumeric <-
+  ifelse(rDivism$recidivism_within_3years == "TRUE", 1,0)
+
+trainIndex <- createDataPartition(rDivism$recidivism_within_3years, p = 0.50, #splitting into 50-50 in training and testing models
+                                  list = FALSE,
+                                  times = 1)
+rDivismTrain <- rDivism[ trainIndex,]
+rDivismTest  <- rDivism[-trainIndex,]
+```
+
+```{r run_model, results = 'hide'}
+#not working and idk why - confused about the glm part
+rDivismModel <- glm(rDivismNumeric ~ ., #glm is generalized linear model, taking in the defaults
+                    data=rDivismTrain %>% 
+                    dplyr::select(-prison_offense, -prison_years, -gender, -recidivism_within_3years), # -recidivism_arrest_year1, -recidivism_arrest_year2, -recidivism_arrest_year3),
+                  family="binomial"(link="logit"))
+# i added gender into the model instead of agetime - if we want a more temporal variable
+# we can add it too
+summary(rDivismModel)
+```
+
+```{r second_model, results = 'hide'}
+rDivismModel2 <- glm(rDivismNumeric ~ .,
+                  data=rDivismTrain %>% dplyr::select(-prison_offense, -prison_years, -gender, -race, -education_level, -recidivism_arrest_year1, -recidivism_arrest_year2, -recidivism_arrest_year3, -recidivism_within_3years),
+                  family="binomial" (link="logit"))
+
+summary(rDivismModel2)
+
+```
+
+```{r fit_metrics, results = 'hide'}
+
+pR2(rDivismModel2) #McFadden is pseudo R squared
+
+```
+The output assesses the fit of a null model using various pseudo-R2 statistics. With a log likelihood of -95.71 for the fitted model and -208.37 for the null model, the G² statistic shows a substantial difference of 225.32. McFadden's pseudo-R2 is 0.54, indicating that the model explains about 54% of the variance relative to the null model. The r2ML and r2CU values further support the model's superiority, with 0.52 and 0.70, respectively. These results suggest that the predictors significantly contribute to the model's explanatory power, outperforming the null model.
+
+
+
+```{r testProbs}
+rDivismModel$xlevels[["prior_arrest_episodes_felony"]] <- union(rDivismModel$xlevels[["prior_arrest_episodes_felony"]], levels(rDivismTest$prior_arrest_episodes_felony))
+
+rDivismTest$prior_arrest_episodes_felony[is.na(rDivismTest$prior_arrest_episodes_felony)] <- 9
+levels_train <- levels(rDivismTrain$prior_arrest_episodes_felony)
+
+# Relevel the factor variable in the new data
+rDivismTest$prior_arrest_episodes_felony <- factor(rDivismTest$prior_arrest_episodes_felony, levels = levels_train)
+
+testProbs <- data.frame(class = rDivismTest$recidivism_within_3years,
+                        Outcome = as.factor(rDivismTest$rDivismNumeric),
+                        Probs = predict(rDivismModel, rDivismTest, type= "response"))
+
+```
+
+```{r plot_testProbs}
+ggplot(testProbs, aes(x = Probs, fill = as.factor(Outcome))) + 
+  geom_density() +
+  facet_grid(Outcome ~ . ) +
+  scale_fill_manual(values = palette2) +
+  ylim(0,1)+
+  labs(x = "Recidivism", y = "Density of probabilities",
+       title = "Distribution of predicted probabilities by observed outcome") +
+  theme(strip.text.x = element_text(size = 18),
+        legend.position = "none")
+```
+This code generates a density plot using ggplot2 to visualize the distribution of predicted probabilities by observed outcomes. It assigns colors to different outcomes and arranges the plots in a grid based on the outcome. The x-axis represents the predicted probabilities of recidivism, while the y-axis shows the density of these probabilities.
+
+
+## Confusion Matrix
+
+```{r thresholds}
+testProbs <- 
+  testProbs %>%
+  mutate(predOutcome  = as.factor(ifelse(testProbs$Probs > 0.5 , 1, 0))) #setting threshold of 50%
+```
+
+```{r confusion_matrix}
+caret::confusionMatrix(testProbs$predOutcome, testProbs$Outcome, 
+                       positive = "1") #sensitivity tells us how good at predicting the 1, i.e. true positives. specificity is how good are we at predicting the 0, i.e. true negatives.
+
+```
+The Confusion Matrix presents the actual and predicted classes, allowing for a breakdown of correct and incorrect predictions. The statistics, such as accuracy, sensitivity, specificity, and positive predictive value, offer insights into different aspects of the model's performance. Accuracy indicates overall correctness, while sensitivity and specificity highlight its ability to correctly identify positive and negative instances, respectively. Understanding these metrics is crucial for assessing the model's strengths and weaknesses, guiding improvements, and determining its suitability for determining recidivism. In this specific case, an accuracy of 65.25% suggests moderate overall performance. Sensitivity at 80.77% indicates the model's effectiveness in identifying true positives, while specificity at 42.28% shows room for improvement in correctly identifying true negatives. The positive predictive value of 67.43% signifies reasonable reliability in positive predictions, albeit with potential for enhancement.
+
+
+## ROC Curve
+
+```{r roc_curve, warning = FALSE, message = FALSE}
+ggplot(testProbs, aes(d = as.numeric(Outcome), m = Probs)) +
+  geom_roc(n.cuts = 50, labels = FALSE, colour = "#FE9900") +
+  style_roc(theme = theme_grey) +
+  geom_abline(slope = 1, intercept = 0, size = 1.5, color = 'grey') +
+  labs(title = "ROC Curve - Recidivism Model")
+```
+The ROC curve generated by the provided code is essential for evaluating the performance of a recidivism model. ROC (Receiver Operating Characteristic) curves illustrate the trade-off between the true positive rate (sensitivity) and the false positive rate (1 - specificity) across different decision thresholds. This visualization is crucial as it provides a comprehensive view of the model's discrimination ability and helps in selecting the optimal threshold for classification. A higher area under the ROC curve (AUC) indicates better overall performance, with values closer to 1 signifying superior discrimination between positive and negative instances. By plotting the ROC curve, analysts can assess the model's effectiveness in distinguishing between recidivism and non-recidivism cases, aiding in decision-making processes and further refining the model's predictive capabilities. The inclusion of the title "ROC Curve - Recidivism Model" ensures clarity and context, facilitating easier interpretation and communication of results.
+
+
+
+## Model Accuracy
+
+```{r cv}
+
+# Define train control
+ctrl <- trainControl(method = "cv", number = 100, classProbs = TRUE, summaryFunction = twoClassSummary)
+
+rDivism <- drop_na(rDivism)
+rDivismTest <- drop_na(rDivismTest)
+rDivism$prior_arrest_episodes_felony <- as.numeric(rDivism$prior_arrest_episodes_felony)
+rDivismTest$prior_arrest_episodes_felony <- as.numeric(rDivismTest$prior_arrest_episodes_felony)
+
+rDivism$recidivism_within_3years <- factor(rDivism$recidivism_within_3years)
+levels(rDivism$recidivism_within_3years) <- make.names(levels(rDivism$recidivism_within_3years))
+
+rDivismTest$recidivism_within_3years <- factor(rDivismTest$recidivism_within_3years)
+levels(rDivismTest$recidivism_within_3years) <- make.names(levels(rDivismTest$recidivism_within_3years))
+
+# Train the model
+cvFit <- train(recidivism_within_3years ~ .,
+               data = rDivismTest %>% 
+               dplyr::select(-prison_offense, -gender, -prior_arrest_episodes_felony,
+                            -rDivismNumeric),
+               method = "glm", 
+               family = "binomial",
+               metric = "ROC", 
+               trControl = ctrl)
+
+# View the results
+cvFit
+```
+The results of the GLM applied to the recidivism dataset indicate promising performance in predicting whether individuals will reoffend after being incarcerated. With 269 samples and 52 predictors, the model was trained and evaluated using cross-validation with 100 folds. The binary classification task, distinguishing between 'FALSE.' and 'TRUE.' classes representing non-recidivism and recidivism respectively, yielded impressive (too impressive) results. The model achieved a perfect ROC value of 1, indicating excellent discrimination ability between the two classes. Moreover, both sensitivity and specificity were observed to be 1, signifying that the model identified both recidivating and non-recidivating individuals 100% of the time. These findings tell us that this GLM model is overfitted and can predict this 100% of the time with the dataframe given, which means that this model isn't generalizeable to other datasets. 
+
+
+
+```{r goodness_metrics, message = FALSE, warning = FALSE}
+dplyr::select(cvFit$resample, -Resample) %>%
+  gather(metric, value) %>%
+  left_join(gather(cvFit$results[2:4], metric, mean)) %>%
+  ggplot(aes(value)) + 
+    geom_histogram(bins=35, fill = "#FF006A") +
+    facet_wrap(~metric) +
+    geom_vline(aes(xintercept = mean), colour = "#981FAC", linetype = 3, size = 1.5) +
+    scale_x_continuous(limits = c(0, 1)) +
+    labs(x="Goodness of Fit", y="Count", title="CV Goodness of Fit Metrics",
+         subtitle = "Across-fold mean reprented as dotted lines")
+
+```
+This code constructs a visualization to assess the goodness-of-fit metrics derived from cross-validated model evaluation. Initially, the code selects relevant columns from the cross-validation results dataframe, excluding the 'Resample' column. Subsequently, it reshapes the data into a long format, facilitating visualization by grouping metrics into key-value pairs. This visualization provides a comprehensive overview of the distribution and mean values of goodness-of-fit metrics across cross-validation folds, aiding in the assessment of model performance and identifying potential areas for improvement.
+
+
+
+## Cost-Benefit calculation of recidivism vs. continued jail-time
+
+The Cost-Benefit calculation of recidivism versus continued jail-time involves a comprehensive analysis of the financial and societal implications associated with both scenarios. It considers factors such as the costs of incarceration, including housing, healthcare, and administrative expenses, weighed against the potential benefits of reduced crime rates and enhanced public safety. Additionally, it evaluates the effectiveness of alternative interventions, such as rehabilitation programs and community-based supervision, in mitigating recidivism and promoting successful reintegration into society. By quantifying the costs and benefits of different approaches to managing recidivism, policymakers can make informed decisions about resource allocation and prioritize evidence-based strategies that maximize societal well-being while minimizing financial burdens.
+
+The outlined code serves as the methodology for conducting the cost-benefit calculation regarding recidivism versus continued jail-time. This calculation looks at various outcome metrics, such as True Negative, True Positive, False Negative, and False Positive rates, based on the predictive model's performance. Leveraging these metrics, the code estimates the financial implications associated with each prediction outcome, including correctly and incorrectly identifying recidivism. Finally, it organizes the calculated metrics and revenue estimates into a concise Cost/Benefit Table, offering a structured overview of the financial and societal costs and benefits associated with different prediction scenarios. This methodology provides a systematic approach to assess the effectiveness and economic viability of interventions aimed at reducing recidivism rates.
+```{r cost_benefit}
+testProbs <- drop_na(testProbs)
+
+cost_benefit_table <-
+   testProbs %>%
+      count(predOutcome, Outcome) %>%
+      summarize(True_Negative = sum(n[predOutcome==0 & Outcome==0]),
+                True_Positive = sum(n[predOutcome==1 & Outcome==1]),
+                False_Negative = sum(n[predOutcome==0 & Outcome==1]),
+                False_Positive = sum(n[predOutcome==1 & Outcome==0])) %>%
+       gather(Variable, Count) %>%
+       mutate(Revenue =
+               ifelse(Variable == "True_Negative", Count * 0,
+               ifelse(Variable == "True_Positive",((.35 - .1) * Count),
+               ifelse(Variable == "False_Negative", (-0.35) * Count,
+               ifelse(Variable == "False_Positive", (-0.1) * Count, 0))))) %>%
+    bind_cols(data.frame(Description = c(
+              "We correctly predicted no recidivism",
+              "We correctly predicted recidivism",
+              "We predicted no recidivism and there was",
+              "We predicted recidivism and there wasn't")))
+
+kable(cost_benefit_table,
+       caption = "Cost/Benefit Table") %>% kable_styling()
+```
+In the context of predicting recidivism, revenue is not directly associated with monetary gains but rather represents a conceptual framework to quantify the societal and economic impacts of prediction outcomes. When correctly predicting recidivism (True Positive), it implies that intervention measures can be appropriately allocated, such as targeted rehabilitation programs or increased monitoring, potentially leading to reduced future criminal behavior. The revenue generated here symbolizes the societal benefits derived from successful predictions, which can include factors like improved public safety, reduced victimization, and enhanced resource allocation efficiency.
+
+Conversely, incorrectly predicting recidivism (False Positive) can have adverse consequences. It may result in unnecessary interventions or harsher penalties for individuals who would not have reoffended, leading to potential stigmatization, loss of trust in the justice system, and increased incarceration costs. The negative revenue associated with False Positives reflects the societal costs incurred due to erroneous predictions, including wasted resources, potential harm to individuals' reintegration efforts, and the perpetuation of systemic inequalities.
+
+Therefore, while revenue in this context does not translate to monetary gains, it serves as a metric to evaluate the effectiveness and efficiency of recidivism prediction models. Maximizing revenue entails optimizing the balance between correctly identifying individuals at risk of recidivism (True Positives) to provide necessary support and minimizing incorrect predictions (False Positives) to avoid unnecessary societal costs and potential harm to individuals.
+
+
+```{r iterate_threshold}
+iterateThresholds <- function(data) {
+  x = .01
+  all_prediction <- data.frame()
+  while (x <= 1) {
+  
+  this_prediction <-
+      testProbs %>%
+      mutate(predOutcome = ifelse(Probs > x, 1, 0)) %>%
+      count(predOutcome, Outcome) %>%
+      summarize(True_Negative = sum(n[predOutcome==0 & Outcome==0]),
+                True_Positive = sum(n[predOutcome==1 & Outcome==1]),
+                False_Negative = sum(n[predOutcome==0 & Outcome==1]),
+                False_Positive = sum(n[predOutcome==1 & Outcome==0])) %>%
+     gather(Variable, Count) %>%
+     mutate(Revenue =
+               ifelse(Variable == "True_Negative", Count * 0,
+               ifelse(Variable == "True_Positive",((.35 - .1) * Count),
+               ifelse(Variable == "False_Negative", (-0.35) * Count,
+               ifelse(Variable == "False_Positive", (-0.1) * Count, 0)))),
+            Threshold = x)
+  
+  all_prediction <- rbind(all_prediction, this_prediction)
+  x <- x + .01
+  }
+return(all_prediction)
+}
+```
+
+
+This block of code first calls the `iterateThresholds` function that aggregates the revenue values from `whichThreshold` dataframe based on different threshold values. We create a line plot where the x-axis represents the threshold values and the y-axis represents the total revenue. The `geom_line` function is used to draw a line connecting the revenue values for different thresholds. Additionally, a vertical line is added to the plot using `geom_vline`, which denotes the optimal threshold. 
+
+```{r revenue_model}
+whichThreshold <- iterateThresholds(testProbs2)
+
+whichThreshold_revenue <- 
+whichThreshold %>% 
+    group_by(Threshold) %>% 
+    summarize(Revenue = sum(Revenue))
+
+  ggplot(whichThreshold_revenue)+
+  geom_line(aes(x = Threshold, y = Revenue))+
+  geom_vline(xintercept =  pull(arrange(whichThreshold_revenue, -Revenue)[1,1]))+
+    labs(title = "Model Revenues By Threshold For Test Sample",
+         subtitle = "Vertical Line Denotes Optimal Threshold")
+
+```
+
+# Conclusion
+
+* This model should be used with caution. While it may be able to predict recidivism, it might highlight 
+
+* Models like this one are dangerous to use in the criminal justice system. While it is important to use data-drive approaches to understand phenomenon in our system, this model is not in-depth enough to catch nuances of why or how someone becomes part of the recidivism category.
+* The criminal justice system is ultimately very flawed, as prison re-entry programs very state by state. This model does not account for re-entry, which is a large part of the statistics regarding recidivism.
+  + Re-entry, or programs that prepare incarcerated individuals for life after being released, should begin from the day that they step foot into prison. 
+  + Re-entry programs should include education, job training, mental and physical healthcare, and financial training. Many states do not have re-entry programs unless it is for incarcerated people about to be released. 
+  + The unemployment rate for formerly incarcerated people is much higher than the national average. Additionally, the rate of formerly incarcerated people without a GED, high school diploma, or college degree is also much higher than the national average. Poverty is the largest indicator of recidivism, and re-entry programs need to include anti-poverty strategies within programming.
+
+* There is no benefit to keeping incarcerated people in prison past when is needed for the goal of cutting costs. Prison systems should be focused on rehabilitation instead of predicting future crime - while there are predictors of recidivism that could be generally accurate, re-entry programs can change the rate of recidivism.  
+

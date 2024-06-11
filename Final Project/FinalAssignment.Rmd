@@ -1,0 +1,1313 @@
+---
+title: 'Final: Measuring Gentrification'
+author: "Kamya Khandelwal, Revathi Machan, Claudia Schreier"
+date: "05/13/2024"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    code_download: true
+    theme: journal  
+---
+
+*TO:* Akshay Malik, City of Philadelphia Smart Cities Director
+*FROM:* Kamya Khandelwal, Revathi Machan, Claudia Schreier
+*DATE:* 13 May 2024
+*RE:* Predictive modeling for gentrification in Philadelphia
+
+## Gentrification in Philadelphia 
+
+Philadelphia has been experiencing a cost-of-living crisis for decades. For a city commonly referred to as the nation’s poorest largest city, there is much worry about the future of new developments and housing^1^. Philadelphia has the highest poverty rate out of the ten largest cities in the US. In 2018, around 231,000 Philadelphia households were cost-burdened, which is defined by the US Department of Housing and Urban Development as a situation when a household spends 30% or more of its income on housing costs, including rent, mortgage payments, utilities, insurance, and property taxes^2^. This problem is more severe for renters – among renters with incomes below $30,000 per year, 88% are cost-burdened and 68% are severely cost-burdened (spending more than 50% of income on housing).  
+
+With lots of cost-burdened householders, including homeowners and renters, in the city, it seems that the fear  of displacement and gentrification in many neighborhoods is common. Historically high rents and mortgage rates, combined with unprecedented levels of new developments have spurred discussion around gentrification in the city^4^. Gentrification is defined as a type of neighborhood change where higher income residents replace lower income ones – housing costs rise, property values rise, and typically, long term residents get displaced^5^. Gentrification today is informed by a legacy of displacement that was spurred by ”redevelopment” and ”urban renewal” plans. Philadelphia was hit especially hard by this displacement in West Philadelphia with university expansion plans throughout the second half of the 20th century.
+
+In broader discussions about gentrification online and in media, gentrification can seem like something that occurs when a brewery replaces a corner store, or a luxury gym replaces a single-family home. Gentrification can be marked by many things, and the signs can vary for different people that a neighborhood is being gentrified.  There has even been new technology like AI models created to identify signs of gentrification from temporal maps like Google Street View^6^. While the signs of gentrification can be visible, they may be hard to track through data. Researchers rely on demographic data to make conclusions about the types of change that the neighborhood is experiencing, like racial changes, age changes, and income changes.
+
+## Data exploration
+
+This project seeks to create a predictive model for gentrification that can be used in planning practice to identify areas at risk for gentrification or identify areas undergoing gentrification. This model uses factors that the team at Marie Antoinette Predictions have researched and believe are reliable markers for gentrification. The variables in our model are construction permits, vacant properties, affordable housing locations, green spaces, and demolitions. The data was collected from Philadelphia’s open data portal^7^. After downloading the relevant data, it was cleaned to ensure that variables were clear and transferable. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+
+
+if(!require(pacman)){install.packages("pacman"); library(pacman)}
+p_load(sf, tidyverse, tidycensus, RSocrata, viridis, spatstat, raster, spdep, FNN, grid, gridExtra, knitr, kableExtra, classInt, RColorBrewer, ggcorrplot, ggplot2, viridis, dplyr)
+
+# functions
+root.dir = "https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/DATA/"
+source("https://raw.githubusercontent.com/urbanSpatial/Public-Policy-Analytics-Landing/master/functions.r")
+
+```
+
+
+```{r map theme, results = 'hide', message = FALSE, warning = FALSE}
+
+mapTheme <- function(base_size = 12) {
+  theme(
+    text = element_text( color = "black"),
+    plot.title = element_text(size = 16,colour = "black"),
+    plot.caption=element_text(hjust=0),
+    axis.ticks = element_blank(),
+    panel.background = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(colour = "black", fill=NA, size=2),
+    strip.text.x = element_text(size = 14))
+}
+
+plotTheme <- function(base_size = 12) {
+  theme(
+    text = element_text( color = "black"),
+    plot.title = element_text(color = "darkgreen", size=15, face="bold"),
+    plot.subtitle = element_text(face="italic"),
+    plot.caption = element_text(hjust=0),
+    axis.ticks = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major = element_line("grey80", size = 0.1),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(colour = "black", fill=NA, size=2),
+    strip.background = element_rect(fill = "grey80", color = "white"),
+    strip.text = element_text(size=12),
+    axis.title = element_text(size=12),
+    axis.text = element_text(size=10),
+    plot.background = element_blank(),
+    legend.background = element_blank(),
+    legend.title = element_text(colour = "black", face = "italic"),
+    legend.text = element_text(colour = "black", face = "italic"),
+    strip.text.x = element_text(size = 14)
+  )
+}
+```
+
+### Read in Data from Philadelphia
+
+```{r read_data, results = 'hide', message = FALSE, warning = FALSE}
+# permits
+phlPermits <- 
+  st_read("https://phl.carto.com/api/v2/sql?q=SELECT+*+FROM+permits+WHERE+permitissuedate+>=+'2013-01-01'+AND+permitissuedate+<+'2022-12-31'&filename=permits&format=geojson&skipfields=cartodb_id") %>% 
+    st_transform('ESRI:102728')%>%
+  mutate(Legend = "Philadelphia Permits")%>%
+  mutate(Year = as.integer(format(permitissuedate, "%Y"))) 
+
+## 2. Philadelphia Boundaries
+phlBoundary <- 
+  st_read("http://data.phl.opendata.arcgis.com/datasets/405ec3da942d4e20869d4e1449a2be48_0.geojson") %>%
+  st_transform('ESRI:102728')
+
+#dunno if we need to fishnet this
+phlFishnet <- 
+  st_make_grid(phlBoundary,
+               cellsize = 500, 
+               square = TRUE) %>%
+  .[phlBoundary] %>% 
+  st_sf() %>%
+  mutate(uniqueID = rownames(.))
+
+## 3. Philadelphia Neighborhoods - isn't loading
+phillyNeighborhoods <-
+  st_read("https://raw.githubusercontent.com/opendataphilly/open-geo-data/master/philadelphia-neighborhoods/philadelphia-neighborhoods.geojson") %>%
+  st_transform('ESRI:102728') %>%
+  st_transform(st_crs(phlFishnet)) 
+
+## 4. Vacant Property
+vacantBuilding <-
+  st_read('https://opendata.arcgis.com/datasets/f7ed68293c5e40d58f1de9c8435c3e84_0.geojson') %>% 
+  na.omit() %>%
+  st_transform('ESRI:102728') %>%
+  st_transform(st_crs(phlFishnet)) %>%
+  mutate(Legend = "Vacant Buildings")
+
+## 5. Affordable Housing
+affordableHousing <-
+  st_read('https://opendata.arcgis.com/datasets/ca8944190b604b2aae7eff17c8dd9ef5_0.geojson') %>% 
+  filter(FISCAL_YEAR_COMPLETE >= "2012") %>%
+  st_transform('ESRI:102728') %>%
+  st_transform(st_crs(phlFishnet)) %>%
+  mutate(Legend = "Affordable Housing")
+
+
+## 7. Green Spaces
+greenSpace <-
+  st_read('https://opendata.arcgis.com/datasets/d52445160ab14380a673e5849203eb64_0.geojson') %>% 
+  st_transform('ESRI:102728') %>%
+  st_transform(st_crs(phlFishnet)) %>%
+  mutate(Legend = "Green Spaces")
+
+
+## 10. Demolition Data
+buildingDemolition <-
+  st_read('https://phl.carto.com/api/v2/sql?q=SELECT+*+FROM+demolitions&filename=demolitions&format=geojson&skipfields=cartodb_id') %>% 
+  mutate(year = substr(start_date,1,4)) %>%
+  filter(year == '2022') %>%
+  st_transform('ESRI:102728') %>%
+  st_transform(st_crs(phlFishnet)) %>%
+  mutate(Legend = "Building Demolition") 
+
+## 11. Census data - ACS 2021
+tracts22 <- get_acs(
+  geography = "tract",
+  variables = c(
+    "B01003_001",   # Total Population
+    "B19013_001",   # Median Household Income
+    "B25008_002",   # Owner-Occupied Units
+    "B25008_003",   # Renter-Occupied Units
+    "B25008_001E",  # Total Population in Housing Units
+    "B15003_022",   # Educational Attainment: Bachelor's Degree
+    "B06012_002E",  # Population Below the Poverty Level
+    "B02001_002",   # Race and Ethnicity: White Alone
+    "B02001_003",   # Race and Ethnicity: Black or African American Alone
+    "B27011_008E"  # Population Unemployed
+  ),
+  year = 2022,
+  state = "PA",
+  county = "Philadelphia",
+  geometry = TRUE,
+  output = "wide"
+)%>%
+  dplyr::select(-NAME, -ends_with("M")) %>%
+  rename(totalPop = B01003_001E,                           # Total Population
+         medHHInc = B19013_001E,                           # Median Household Income
+         totalUnit = B25008_001E,                          # Total Population in Housing Units
+         ownerOccupied = B25008_002E,                      # Owner-Occupied Units
+         renterOccupied = B25008_003E,                     # Renter-Occupied Units
+         bachDegree = B15003_022E,                    # Educational Attainment: Bachelor's Degree
+         totalPov = B06012_002E,                       # Population Below the Poverty Level
+         totalUnemploy = B27011_008E,                  # Population Unemployed
+         whiteAlone = B02001_002E,                          # Race and Ethnicity: White Alone
+         blackAlone = B02001_003E                          # Race and Ethnicity: Black or African American Alone
+         )
+
+### 11.1. Transform the data to ESRI:102728 projection
+
+tracts22 <- tracts22 %>% st_transform(st_crs(phlFishnet))
+
+### 11.2 Create new variables
+
+tracts22 <- tracts22 %>%
+  mutate(pctWhite = ifelse(totalPop > 0, whiteAlone / totalPop * 100,0),
+         pctBlack = ifelse(totalPop > 0, blackAlone / totalPop * 100,0),
+         pctPov = ifelse(totalPop > 0, totalPov / totalPop *100, 0),
+         pctUnemploy = ifelse(totalPop > 0, totalUnemploy / totalPop *100, 0),
+         pctBach = ifelse(totalPop > 0, bachDegree / totalPop *100, 0),
+         pctOwnerOccupied = ifelse(totalPop > 0, ownerOccupied / totalUnit *100, 0),
+         pctRenterOccupied = ifelse(totalPop > 0, renterOccupied / totalUnit *100, 0)
+         ) %>%
+  dplyr::select(-whiteAlone, -blackAlone, -totalPov ,-totalUnemploy,-ownerOccupied, -renterOccupied, -totalUnit, -bachDegree, -GEOID) %>%
+  st_transform(st_crs(phlFishnet)) 
+
+### 11.3 Organize into datasets - what is this whole organization part for??
+
+tracts22.medHHInc <- tracts22 %>%
+  dplyr::select(medHHInc) %>%
+  rename(Legend = medHHInc)
+
+tracts22.pctWhite <- tracts22 %>%
+  dplyr::select(pctWhite)%>%
+  rename(Legend = pctWhite)
+
+tracts22.pctBlack <- tracts22 %>%
+  dplyr::select(pctBlack)%>%
+  rename(Legend = pctBlack)
+
+tracts22.pctPov <- tracts22 %>%
+  dplyr::select(pctPov)%>%
+  rename(Legend = pctPov)
+
+tracts22.pctUnemploy <- tracts22 %>%
+  dplyr::select(pctUnemploy)%>%
+  rename(Legend = pctUnemploy)
+
+tracts22.pctBach <- tracts22 %>%
+   dplyr::select(pctBach)%>%
+   rename(Legend = pctBach)
+
+tracts22.pctOwnerOccupied <- tracts22 %>%
+  dplyr::select(pctOwnerOccupied)%>%
+  rename(Legend = pctOwnerOccupied)
+
+tracts22.pctRenterOccupied <- tracts22 %>%
+  dplyr::select(pctRenterOccupied)%>%
+  rename(Legend = pctRenterOccupied)
+```
+
+### Data Visualisation
+
+The data was visualized using mapping tools. The area from around Center City to lower North Philadelphia and Kensington has the densest amount of construction permits and demolition permits. There is a high density of vacant buildings in West and North Philadelphia.
+
+```{r police data, message = FALSE, warning = FALSE, results = 'hide'}
+
+#Categorizing the permits for construction and demolition
+phlPermits <- phlPermits %>%
+  mutate(newType = case_when(permittype == "BUILDING" | permittype == "BP_NEWCNST"  ~ 'CONSTRUCTION PERMIT',
+  permittype == "DEMOLITION" | permittype == "BP_DEMO" ~ 'DEMOLITION PERMIT'))
+
+
+cnstPermits <- phlPermits %>%
+  filter(newType == 'CONSTRUCTION PERMIT')
+
+demoPermits <- phlPermits %>%
+  filter(newType == 'DEMOLITION PERMIT')
+
+cnstPermits_2022 <- cnstPermits%>%
+  filter(Year==2022)
+
+cnstPermits_2013 <- cnstPermits%>%
+  filter(Year == 2013)
+```
+
+The plots below show how the different types of permits are located all over Philadelphia, looking primarily at the the permits that fall under construction or zoning. We also look at how other various chosen demographic and socio-economic factors are mapped out across the city to compare them against where there is the highest density of permits. Construction permits can be seen in higher concentrations in the areas where there is a higher percentage of individuals with bachelor's degrees and higher unemployment.
+
+```{r plot variables, fig.width=6, fig.height=4, message = FALSE, warning = FALSE}
+
+# Plot 1: map of all construction and demo permits issued b/w 2013 and 2022
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    geom_sf(data = phlPermits, aes(colour = newType), size = 0.5, show.legend = "point") +
+  scale_color_manual(values = c("magenta", "lightgreen")) +
+  labs(title = "Major Permits Issued, 2013-22 in Philadelphia",
+       caption = "Figure 1") +
+    theme_void()  
+
+
+  # Plot 2 + 3: Mapped points and Density map of construction permits issued
+ggplot() + 
+  geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+  geom_sf(data = cnstPermits, aes(color = "magenta"), size = 0.5) + 
+  scale_color_identity(guide = "legend", name = NULL, labels = "Construction Permits") +
+  labs(title = "Construction Permits Issued, 2013-22 in Philadelphia",
+       caption = "Figure 2") +
+  theme_void() 
+
+
+  ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    stat_density2d(data = data.frame(st_coordinates(cnstPermits)),  
+                   aes(X, Y, fill = ..level.., alpha = ..level..),  
+                   size = 0.01, bins = 40, geom = 'polygon') +  
+    scale_fill_viridis_c(option ="rocket") +  
+    labs(title = "Density of Construction Permits") +  
+    theme_void() + theme(legend.position = "none")  
+
+
+
+#Plot 4 + 5: Mapped points and Density map of demolition permits issued
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    geom_sf(data = demoPermits, aes(colour = "lightgreen"), size = 0.5) +
+  scale_color_identity(guide = "legend", name = NULL, labels = "Demolition Permits") +
+  labs(title = "Demolition Permits Issued, 2013-22 in Philadelphia",
+       caption = "Figure 4") +
+    theme_void()
+
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    stat_density2d(data = data.frame(st_coordinates(demoPermits)),  
+                   aes(X, Y, fill = ..level.., alpha = ..level..),  
+                   size = 0.01, bins = 40, geom = 'polygon') +  
+    scale_fill_viridis_c(option = "rocket") +  
+    scale_alpha(range = c(0.00, 0.35), guide = FALSE) +  
+    labs(title = "Density of Construction Permits") +  
+    theme_void() + theme(legend.position = "none")  
+
+
+# plot 6: affordable housing
+ggplot() + 
+  geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+  geom_sf(data = affordableHousing, aes(color = "orange"), size = 0.5) + 
+  scale_color_identity(guide = "legend", name = NULL, labels = "Affordable Housing Units") +
+  labs(title = "Affordable Housing Developments, 2013-22 in Philadelphia",
+       caption = "Figure 6") +
+  theme_void() 
+
+#plot7: 
+ggplot() + 
+  geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+  geom_sf(data = greenSpace, aes(color = "darkgreen"), size = 0.5) + 
+  scale_color_identity(guide = "legend", name = NULL, labels = "Green Spaces") +
+  labs(title = "Green Spaces, 2013-22 in Philadelphia",
+       caption = "Figure 7") +
+  theme_void() 
+
+
+#plot8 and 9: vacant land point and density maps
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    geom_sf(data = vacantBuilding, aes(color = 'darkred'), size = 0.5, show.legend = "point") +
+  scale_color_identity(guide = "legend", name = NULL, labels = "Vacant Buildings") +
+  labs(title = "Suspected Vacant Buildings in Philadelphia",
+       caption = "Figure 8") +
+    theme_void()
+
+ggplot() + 
+    geom_sf(data = phlBoundary, fill = "grey89", color = "darkgrey") +  
+    stat_density2d(data = data.frame(st_coordinates(vacantBuilding)),  
+                   aes(X, Y, fill = ..level.., alpha = ..level..),  
+                   size = 0.01, bins = 40, geom = 'polygon') +  
+    scale_fill_viridis_c(option = "rocket") +  
+    scale_alpha(range = c(0.00, 0.35), guide = FALSE) + 
+    labs(title = "Density of Vacant Buldings") +  
+    theme_void() + theme(legend.position = "none")  
+
+
+
+#plot10: demographic
+ggplot()+
+    geom_sf(data=tracts22, aes(color=NA, fill=pctUnemploy))+
+    scale_color_viridis()+
+    scale_fill_viridis_c()+
+    geom_sf(data = cnstPermits, aes(color="yellow") ,
+          show.legend = "point", size = .1, alpha=0.3) +
+    scale_color_identity() +
+    labs(title="% Unemployment around Permits Issued")+
+    mapTheme()+theme(plot.title = element_text(size = 10), legend.title=element_blank())
+
+ggplot()+
+    geom_sf(data=tracts22, aes(color=NA, fill=pctBach))+
+    scale_color_viridis()+
+    scale_fill_viridis()+
+    geom_sf(data = cnstPermits, aes(color="yellow") ,
+          show.legend = "point", size = .1, alpha=0.3) +
+    scale_color_identity() +
+    labs(title="% Population with Bachelor's Degree around Permits Issued")
+```
+### Fishnet
+
+Here we construct a geospatial dataset to examine how the risk of new development is spread throughout Philadelphia. To do this we created a fishnet which is a continous grid pattern consisting of cells measuring 500x500 feet. This grid allows us to conceptualize development risk, represented by the presence of new construction permits. The following plot depicts the count of new construction permits across the fishnet, with grid cells depicted in yellow indicating the highest permit counts.
+
+```{r fishnet, message = FALSE, warning = FALSE}
+
+# Attaching datasets on spatial factors to Fishnet
+
+## 1. Extracting geometry for spatial factors
+
+
+affordableHousings <- affordableHousing %>%
+  dplyr::select(geometry, Legend)
+
+vacantBuildings <- vacantBuilding %>%
+  dplyr::select(geometry, Legend)
+
+greenSpaces <- greenSpace %>%
+  dplyr::select(geometry, Legend)
+
+buildingDemolitions <- buildingDemolition %>%
+  dplyr::select(geometry, Legend)
+
+
+## 2. Creating fishnet of spatial factor variables 
+
+vars_net <- 
+  rbind(affordableHousings, vacantBuildings,
+        greenSpaces, buildingDemolitions) %>%
+  st_join(., phlFishnet, join=st_within) %>%
+  st_drop_geometry() %>%
+  group_by(uniqueID, Legend) %>%
+  summarize(count = n()) %>%
+  full_join(phlFishnet, by = "uniqueID") %>%
+  spread(Legend, count, fill=0) %>%
+  st_sf() %>%
+  na.omit() %>% 
+  dplyr::select(-`<NA>`) %>%
+  ungroup()
+
+
+cnstPermits <- st_transform(cnstPermits, st_crs(phlFishnet))
+
+construction_net <- 
+  dplyr::select(cnstPermits) %>% 
+  mutate(countPermits = 1) %>% 
+  aggregate(., phlFishnet, sum) %>%
+  mutate(countPermits = replace_na(countPermits, 0),
+         uniqueID = rownames(.),
+         cvID = sample(round(nrow(phlFishnet) / 24), 
+                       size=nrow(phlFishnet), replace = TRUE))
+
+# visualising permits joined to fishnet
+
+ggplot() +
+  geom_sf(data = construction_net, aes(fill = countPermits), color = NA) +
+  geom_sf(data = st_boundary(phlFishnet), color = "darkred", lwd = .04, alpha=.2) + # Add boundaries in red
+  scale_fill_viridis_c(option = "plasma",
+                       name = 'Construction Counts') +
+  labs(title = "Construction Permits Joined to Fishnet",
+       subtitle = 'Philadelphia') + mapTheme() + plotTheme()
+```
+### Nearest Neighbour
+
+This code segment creates a nearest neighbor feature for different categories, including vacant buildings, affordable housing, green spaces, and building demolitions. For each category, it first maps the nearest feature from a given dataset to another dataset, converts the datasets to `rsgeo` geometries, calculates the Euclidean distance between each observation in one dataset and its nearest neighbor in the other dataset. Finally, the calculated distances are appended as new variables to the original dataset for each category, such as `dist_vacantBuilding`, `dist_affordableHousing`, `dist_greenSpace`, and `dist_buildingDemolition`. Essentially this process turns each individual grid cell into a centroid point and then measures the distances between each to find the nearest risk factor point. 
+
+This spatial analysis is crucial for understanding the relationships between different urban features and their proximity to one another. By calculating the distances between variables like vacant buildings, affordable housing, green spaces, and building demolitions, it provides insights into the spatial distribution and potential interactions among these features.
+
+```{r knn, warning = FALSE, message = FALSE}
+
+## 1.2. Vacant Buildings
+
+### Mapping nearest feature
+
+nearest_vacantBuilding <- sf::st_nearest_feature(vars_net, vacantBuilding)
+
+### Converting to rsgeo geometries
+
+x <- rsgeo::as_rsgeo(vars_net)
+y <- rsgeo::as_rsgeo(vacantBuilding)
+
+### Calculating distance
+
+vars_net$dist_vacantBuilding <- rsgeo::distance_euclidean_pairwise(x, y[nearest_vacantBuilding])
+
+
+## 1.3. Affordable Housing
+
+### Mapping nearest feature
+
+nearest_affordableHousing <- sf::st_nearest_feature(vars_net, affordableHousing)
+
+### Converting to rsgeo geometries
+
+x <- rsgeo::as_rsgeo(vars_net)
+y <- rsgeo::as_rsgeo(affordableHousing)
+
+### Calculating distance
+
+vars_net$dist_affordableHousing <- rsgeo::distance_euclidean_pairwise(x, y[nearest_affordableHousing])
+
+
+## 1.4. Green Spaces
+
+### Mapping nearest feature
+
+nearest_greenSpace <- sf::st_nearest_feature(vars_net, greenSpace)
+
+### Converting to rsgeo geometries
+
+x <- rsgeo::as_rsgeo(vars_net)
+y <- rsgeo::as_rsgeo(greenSpace)
+
+### Calculating distance
+
+vars_net$dist_greenSpace <- rsgeo::distance_euclidean_pairwise(x, y[nearest_greenSpace])
+
+## 1.8. Building Demolitions
+
+### Mapping nearest feature
+
+nearest_buildingDemolition <- sf::st_nearest_feature(vars_net, buildingDemolition)
+
+### Converting to rsgeo geometries
+
+x <- rsgeo::as_rsgeo(vars_net)
+y <- rsgeo::as_rsgeo(buildingDemolition)
+
+### Calculating distance
+
+vars_net$dist_buildingDemolition <- rsgeo::distance_euclidean_pairwise(x, y[nearest_buildingDemolition])
+
+
+```
+
+
+```{r vizNN, warning = FALSE, message = FALSE}
+# 2. Visualizing nearest distance for spatial factors on Fishnet
+
+## 2.1. Visualizing the nearest three features
+
+vars_net.long.nn <- 
+  dplyr::select(vars_net, starts_with("dist")) %>%
+  gather(Variable, value, -geometry)
+
+vars <- unique(vars_net.long.nn$Variable)
+mapList <- list()
+
+for(i in vars){
+  mapList[[i]] <- 
+    ggplot() +
+    geom_sf(data = filter(vars_net.long.nn, Variable == i), aes(fill=value), colour=NA) +
+    scale_fill_viridis_c(option = "plasma",
+                         name = " ") +
+    labs(title=i) +
+    mapTheme()+
+    theme(plot.title = element_text(size = 12, color = "black"))
+  }
+
+bottomCaption <- textGrob("Figure 8", gp = gpar(hjust = 0))
+
+do.call(grid.arrange, c(list(grobs = mapList, ncol = 2, 
+                             top = textGrob("Spatial Factors: Nearest Neighbor Distance for Permits Issued\n", 
+                                            gp = gpar(fontsize = 15, fontface = "bold", col = "darkred")), 
+                             bottom = bottomCaption)))
+
+```
+
+### Spatial Joins
+
+Here we want to join the census data to our fishnet so we can also map our demographic variables in a similar fashion, and also just standardize our mode of analysis across all our data.
+
+```{r join census data to fishnet, results = 'hide', warning = FALSE, message = FALSE}
+# Joining Census Data to Fishnet
+
+tracts22 <- tracts22 %>%
+  filter(totalPop>0)
+
+vars_net <-
+  vars_net%>%
+  st_centroid()%>%
+  st_join(tracts22)
+
+
+vars_net <- vars_net %>% mutate_all(~replace(., is.na(.), 0))
+
+# Perform Spatial Join of variables with permits
+
+final_net <-
+  left_join(construction_net, st_drop_geometry(vars_net), by="uniqueID") # this one doesn't work so the last one won't either
+
+# Final Net
+
+
+final_net <-
+  st_centroid(final_net) %>% 
+    st_join(dplyr::select(phillyNeighborhoods, name), by = "uniqueID") %>% 
+      st_drop_geometry() %>%
+      left_join(dplyr::select(final_net, geometry, uniqueID)) %>%  
+      st_sf() %>%
+  na.omit()
+```
+
+
+```{r final net, results = 'hide', warning = FALSE, message = FALSE}
+## generates warnings from PROJ issues
+## {spdep} to make polygon to neighborhoods... 
+final_net.nb <- poly2nb(as_Spatial(final_net), queen=TRUE)
+## ... and neighborhoods to list of weigths
+final_net.weights <- nb2listw(final_net.nb, style="W", zero.policy=TRUE)
+
+# print(final_net.weights, zero.policy=TRUE)
+```
+
+## Modeling Process
+
+### Local Moran's I
+
+Incorporating Local Moran's I analysis into the spatial modeling process is pivotal for understanding the distribution of construction permits across urban areas. Local Moran's I serves as a vital tool, providing insights into the spatial clustering or dispersion of permit issuance, thereby enhancing the model's capacity to identify significant spatial patterns in urban development. By integrating Local Moran's I statistics with other spatial factors, such as nearest neighbor distances and geographic features, the model gains a comprehensive understanding of the underlying spatial dynamics influencing construction permit distributions, thereby facilitating informed urban planning and policy decisions.In the context of this model, Local Moran's I helps identify significant spatial patterns in construction permit issuance, indicating areas with high or low concentrations of permits. 
+
+Initially, the local Moran's I values are computed for the permit counts using spatial weights. Then, these results are joined with the spatial data, and significant hotspots are identified based on a significance threshold of 0.05. The output is organized into a long format for plotting, where each variable's Local Moran's I statistics are visualized as spatial maps. These maps depict the spatial clustering patterns of permit issuance, indicating areas of significant clustering or dispersion. 
+
+```{r local moran, results = 'hide', message = FALSE, warning = FALSE}
+## see ?localmoran
+local_morans <- localmoran(final_net$countPermits, final_net.weights, zero.policy=TRUE) %>% 
+  as.data.frame()
+
+# join local Moran's I results to fishnet
+final_net.localMorans <- 
+  cbind(local_morans, as.data.frame(final_net)) %>% 
+  st_sf() %>%
+  dplyr::select(Permit_Count = countPermits, 
+                Local_Morans_I = Ii, 
+                P_Value = `Pr(z != E(Ii))`) %>%
+  mutate(Significant_Hotspots = ifelse((P_Value <= 0.05), 1, 0)) %>%
+  gather(Variable, Value, -geometry)
+  
+```
+
+
+```{r local morans i, fig.width=10, fig.height=4, warning = FALSE, message = FALSE}
+
+## This is just for plotting
+vars <- unique(final_net.localMorans$Variable)
+varList <- list()
+
+for(i in vars){
+  varList[[i]] <- 
+    ggplot() +
+      geom_sf(data = filter(final_net.localMorans, Variable == i), 
+              aes(fill = Value), colour=NA) +
+      scale_fill_viridis(name="") +
+      labs(title=i) +
+      theme_void() + theme(legend.position="bottom")}
+
+do.call(grid.arrange,c(varList, ncol = 4, top = "Local Morans I Statistics, Construction Permits"))
+saveRDS(local_morans, file = "local_morans.rds")
+```
+
+### Distance to Hotspots
+
+Shorter distances between permits indicate areas with higher construction density, which can be associated with rapid urban development or gentrification.
+
+```{r lmi_hotspot,results = 'hide', message = FALSE, warning = FALSE}
+
+local_morans <- readRDS("local_morans.rds")
+
+final_net <- final_net %>%
+  mutate(permit.isSig = ifelse(local_morans[,5] <= 0.0000001,1,0)) %>%
+  mutate(permit.isSig.dist = nn_function(st_coordinates(st_centroid(final_net)), st_coordinates(st_centroid(filter(final_net, permit.isSig == 1))), 1))
+
+#plotting NN hotspots
+
+ggplot() +
+  geom_sf(data = final_net, aes(fill=permit.isSig.dist), colour = NA) +
+  scale_fill_viridis(name="NN Distance") +
+      labs(title="Permit NN Distance", caption= "Figure xx") +
+      mapTheme()+
+      plotTheme()
+
+#lmoran <- localmoran(final_net$lightsout, final_net.weights,  zero.policy=TRUE)
+
+#final_net$lmI <- lmoran[, "Ii"] # local Moran's I
+#final_net$lmZ <- lmoran[, "Z.Ii"] # z-scores
+#final_net$lmp <- lmoran[, "Pr(z != E(Ii))"]
+
+
+#mp <- moran.plot(as.vector(scale(final_net$lightsout)), final_net.weights, zero.policy = TRUE)
+
+##Create a hotspot variable:
+#final_net$lmp <- ifelse(is.nan(final_net$lmp), 0.10, final_net$lmp)
+#final_net$hotspot <- 0
+#final_net[(mp$x >=0 & mp$wx >=0) & final_net$lmp <= 0.05, "hotspot"]<- 1
+```
+
+```{r hotspot, results = 'hide', warning = FALSE, message = FALSE}
+# generates warning from NN
+#final_net <- final_net %>% 
+  #mutate(lightsout.isSig.dist = 
+           #nn_function(st_c(st_coid(final_net)),
+                       #st_c(st_coid(filter(final_net, 
+                                      #     hotspot == 1))), 
+#                       k = 1))
+
+```
+
+
+```{r plotty, warning = FALSE, message = FALSE}
+#ggplot() +
+#      geom_sf(data = final_net, aes(fill=lightsout.isSig.dist), colour=NA) +
+#      scale_fill_viridis(name="NN Distance") +
+#      labs(title="Alley Lights Out NN Distance") +
+#      theme_void()
+```
+
+## Building and evaluating the model
+
+The model used in this analysis is a poisson regression model. The collected and cleaned data that was used in this model was demographic information like race, income, and work status; housing information like percent renter and owner occupied; regional characteristics like vacant buildings, construction permits, affordable housing, and demolitions.
+
+### Correlation
+
+```{r - correlation tests for spatial and demographic factors, warning = FALSE, message = FALSE}
+
+correlation.long <-
+  st_drop_geometry(final_net) %>%
+    dplyr::select(-uniqueID, -cvID, -name) %>%
+    gather(Variable, Value, -countPermits) %>%
+  mutate(Value = as.numeric(Value))
+
+correlation.cor <-
+  correlation.long %>%
+    group_by(Variable) %>%
+    summarize(correlation = cor(Value, countPermits, use = "complete.obs"))
+
+# Visualizing correlations through scatter plots
+#we have a lot of demographic variables here that i don't know if we necessarily need or are interested in keeping for our final stuff - think it may be better to pick and choose fewer demo variables and maybe choose more external variables
+    
+ggplot(correlation.long, aes(Value, countPermits)) +
+  geom_point(size = 0.1) +
+  geom_text(data = correlation.cor, aes(label = paste("r =", round(correlation, 2))),
+            x=-Inf, y=Inf, vjust = 1.5, hjust = -.1) +
+  geom_smooth(method = "lm", se = FALSE, colour = "orange") +
+  facet_wrap(~Variable, ncol = 4, scales = "free") +
+  labs(title = "Permit Count as a function of risk factors", caption="Figure 12") +
+  plotTheme()
+
+```
+
+
+```{r - correlation matrix, message = FALSE, warning = FALSE}
+
+numvars <- c("countPermits", "dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "totalPop", "medHHInc", "pctWhite", "pctBlack", "pctBach" ,"pctPov", "pctUnemploy", "pctOwnerOccupied", "pctRenterOccupied")
+
+numeric <- final_net %>%
+  st_drop_geometry(final_net) %>%
+  dplyr::select(numvars)%>%
+  na.omit()
+
+ggcorrplot(
+  round(cor(numeric), 1), 
+  p.mat = cor_pmat(numeric),
+  colors = c('#d7191c','white','#2c7bb6'),
+  type="lower",
+  insig = "blank") +  
+    labs(title = "Correlation across Variables\n", caption="Figure 13")+ 
+    theme(plot.title = element_text(size = 11, face = "bold", color = "darkred"))+
+    theme(axis.text.x=element_text(size=8))+
+    theme(axis.text.y=element_text(size=8))
+
+```
+There seems to be relatively high positive correlation between median household income and the percent of the population that is white. This may suggest that areas with more white residents are higher earning neighborhoods, or a neighborhood that is gentrifying may have more higher income and more white residents. There is a relatively high negative correlation between total population and the amount of vacant buildings. This may mean that there are less vacant buildings in more populous areas - this could relate to gentrification in the way that more crowded, coveted neighborhoods will be more pressed for space, leading to redevelopment of vacant properties.
+
+Conducting a regression model in this context is crucial for several reasons. Firstly, it allows for the quantification of relationships between various factors and the outcome of interest, such as the number of permits issued or the likelihood of development. This enables the identification of significant predictors and their respective impact on the outcome, aiding in understanding the underlying dynamics of development risk. Additionally, regression modeling provides a means to assess the relative importance of different variables, prioritize interventions, and inform decision-making processes aimed at mitigating development-related challenges or promoting sustainable urban growth.
+
+Cross-validation is performed to evaluate the predictive performance of Poisson regression models applied to the dataset. This process involves splitting the dataset into distinct folds, where each fold serves as a training set for model development and a testing set for performance assessment. Within each iteration, a Poisson regression model is trained using the training data and then applied to the testing data to make predictions. These predictions are compared against the actual values to assess the model's accuracy and robustness. The cross-validation procedure helps ensure that the models generalize well to unseen data and provide reliable predictions in real-world scenarios, enhancing the overall reliability of the analysis.
+
+The provided code implements a cross-validation procedure for evaluating Poisson regression models applied to the dataset `final_net`. It defines a function `crossValidate()` to conduct cross-validation, where the dataset is split into distinct folds (`cvID`) for training and testing. Within each fold, a Poisson regression model is trained using the training data (`fold.train`) and then applied to the testing data (`fold.test`) to make predictions. These predictions are aggregated across all folds to assess the overall predictive performance of the model. The cross-validation helps validate the model's ability to generalize to unseen data, ensuring the reliability of the regression analysis.
+
+### Variable Selection
+
+Based on the correlation analysis, variables such as 'Vacant Building Distance', 'Affordable Housing Distance', 'Green Space Distance', 'Building Demolition Distance', 'Median Household Income', 'Percent Below Poverty Line', 'Percent Unemployed', and 'Percent Owner Occupied' are selected as model variables. 
+
+```{r regression, results='hide', warning = FALSE, message = FALSE}
+
+## define the variables we want
+reg.vars <- c("dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "medHHInc", "pctBach" ,"pctPov", "pctUnemploy", "pctOwnerOccupied")
+
+reg.ss.vars <- c("dist_vacantBuilding",  "dist_affordableHousing","dist_greenSpace", "dist_buildingDemolition", "medHHInc", "pctBach" ,"pctPov", "pctUnemploy", "pctOwnerOccupied", "permit.isSig")
+
+## creating functions for cross validation
+
+crossValidate <- function(dataset, id, dependentVariable, indVariables) {
+  
+  allPredictions <- data.frame()
+  cvID_list <- unique(dataset[[id]])
+  
+  for (i in cvID_list) {
+    
+    thisFold <- i
+    cat("This hold out fold is", thisFold, "\n")
+    
+    fold.train <- filter(dataset, dataset[[id]] != thisFold) %>% as.data.frame() %>% 
+      dplyr::select(id, geometry, indVariables, dependentVariable)
+    fold.test  <- filter(dataset, dataset[[id]] == thisFold) %>% as.data.frame() %>% 
+      dplyr::select(id, geometry, indVariables, dependentVariable)
+    
+    regression <-
+      glm(countPermits ~ ., family = "poisson", 
+          data = fold.train %>% 
+            dplyr::select(-geometry, -id))
+    
+    thisPrediction <- 
+      mutate(fold.test, Prediction = predict(regression, fold.test, type = "response"))
+    
+    allPredictions <-
+      rbind(allPredictions, thisPrediction)
+    
+  }
+  return(st_sf(allPredictions))
+}
+```
+
+### Cross Validation
+
+This shows the process of conducting cross-validation on Poisson regression models using the crossValidate function, aimed at predicting the number of construction permits (countPermits) in Philadelphia neighborhoods. Different models are being evaluated: a non-spatial process model using a defined set of variables (reg.vars) and a spatial process model, which integrates spatial characteristics along with the same set of variables to understand how including spatial data influences the accuracy and predictiveness of the model outcomes. This cross-validation approach helps in assessing the model's robustness and generalizability by testing it on multiple subsets of data.
+
+```{r cross validation, results='hide', warning = FALSE, message = FALSE}
+
+#conducting cross validation on Poisson regressino models
+
+reg.cv <- crossValidate(
+  dataset = final_net,
+  id = "cvID",
+  dependentVariable = "countPermits",
+  indVariables = reg.vars) %>%
+    dplyr::select(cvID = cvID, countPermits, Prediction, geometry)
+
+reg.ss.cv <- crossValidate(
+  dataset = final_net,
+  id = "cvID",
+  dependentVariable = "countPermits",
+  indVariables = reg.ss.vars) %>%
+    dplyr::select(cvID = cvID, countPermits, Prediction, geometry)
+
+final_net$name <- ifelse(is.na(final_net$name), "UNKNOWN", final_net$name)
+  
+reg.spatialCV <- crossValidate(
+  dataset = final_net,
+  id = "name",
+  dependentVariable = "countPermits",
+  indVariables = reg.vars) %>%
+    dplyr::select(cvID = name, countPermits, Prediction, geometry)
+
+reg.ss.spatialCV <- crossValidate(
+  dataset = final_net,
+  id = "name",
+  dependentVariable = "countPermits",
+  indVariables = reg.ss.vars) %>%
+    dplyr::select(cvID = name, countPermits, Prediction, geometry)
+```
+
+### Error Calculation
+
+In each regression, the absolute error is determined by calculating the difference between the predicted and the actual observed counts of new construction permits.
+
+```{r regression errors, results='hide', warning = FALSE, message = FALSE}
+# calculate errors
+
+reg.summary <- 
+  rbind(
+    mutate(reg.cv,           Error = Prediction - countPermits,
+                             Regression = "Random k-fold CV: Just Risk Factors"),
+                             
+    mutate(reg.ss.cv,        Error = Prediction - countPermits,
+                             Regression = "Random k-fold CV: Spatial Process"),
+    
+    mutate(reg.spatialCV,    Error = Prediction - countPermits,
+                             Regression = "Spatial LOGO-CV: Just Risk Factors"),
+                             
+    mutate(reg.ss.spatialCV, Error = Prediction - countPermits,
+                             Regression = "Spatial LOGO-CV: Spatial Process")) %>%
+    st_sf()
+```
+
+
+``` {r errors, results='hide', warning = FALSE, message = FALSE}
+
+# Calculate MAE and standard deviation for each fold and method
+error_by_reg_and_fold <- 
+  reg.summary %>% 
+  group_by(Regression, cvID) %>% 
+  summarize(Mean_Error = mean(Prediction - countPermits, na.rm = T),
+    MAE = mean(abs(Mean_Error), na.rm = TRUE),
+    SD_MAE = mean(abs(Mean_Error), na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+# Arrange by MAE for viewing
+error_by_reg_and_fold %>% 
+  arrange(desc(MAE))
+error_by_reg_and_fold %>% 
+  arrange(MAE)
+
+# Plot histogram of OOF errors for each method
+error_by_reg_and_fold %>%
+  ggplot(aes(x = MAE)) + 
+  geom_histogram(bins = 30, colour="black", fill = "#FDE725FF") +
+  facet_wrap(~ Regression, scales = "free") +
+  scale_x_continuous(breaks = seq(0, 11, by = 1)) +
+  labs(title="Distribution of MAE", subtitle = "Random K-Fold and LOGO-CV",
+       x="Mean Absolute Error", y="Count") +
+  theme(plot.title = element_text(size = 15, face= "bold", color = "darkred"))
+```
+
+
+
+``` {r spatial logo cv errors, results='hide', warning = FALSE, message = FALSE}
+error_by_reg_and_fold %>%
+  filter(str_detect(Regression, "LOGO")) %>%
+  ggplot() +
+  geom_sf(data = phlBoundary, fill = "white", color = "darkgrey") +
+    geom_sf(aes(fill = MAE)) +
+    facet_wrap(~Regression) +
+    scale_colour_viridis(option = "plasma") +
+    scale_fill_viridis(option = "plasma") +
+    labs(title = "Errors by LOGO-CV Regression", caption="Figure 15") +
+    theme(plot.title = element_text(size = 15, face= "bold", color = "darkred"))+
+    theme(strip.text = element_text(size = 8))
+
+```
+
+
+```{r tables, warning = FALSE, message = FALSE}
+# Table of MAE and Standard Deviation MAE
+
+st_drop_geometry(error_by_reg_and_fold) %>%
+  group_by(Regression) %>% 
+    summarize(Mean_MAE = round(mean(MAE), 2),
+              SD_MAE = round(sd(MAE), 2)) %>%
+  kable(caption = "Table 1: MAE and standard deviation MAE by regression") %>%
+    kable_styling("striped", full_width = F) %>%
+    row_spec(2, color = "black", background = "#FDE725FF") %>%
+    row_spec(4, color = "black", background = "#FDE725FF") 
+
+```
+The areas with some of the greatest mean absolute error are closer to center city, such as Fishtown, University City, and Graduate Hospital. Regions of Philadelphia close to the North, West, South, and along the Delaware river showed lower errors, both in terms of just risk factors and spatial process. There was higher error shown in the Spatial LOGO-CV process than the other validation methods. The random k-fold processes resulted in lower mean absolute error.
+
+``` {r morans i errors, results='hide', warning = FALSE, message = FALSE}
+# Assuming 'error_by_reg_and_fold' contains the necessary columns and spatial data
+# First, ensure that your data frame has the appropriate structure and unique row names
+
+# Check for unique row names and reset if necessary
+if(anyDuplicated(row.names(error_by_reg_and_fold))) {
+  rownames(error_by_reg_and_fold) <- make.unique(as.character(row.names(error_by_reg_and_fold)))
+}
+
+# Create weights only for the selected regression type
+neighborhood.weights <- error_by_reg_and_fold %>%
+  filter(Regression == "Spatial LOGO-CV: Spatial Process") %>%
+  st_as_sf() %>%
+  group_by(cvID) %>%
+  poly2nb(., queen = TRUE) %>%  # Corrected: Removed style and zero.policy
+  nb2listw(., style = "W", zero.policy = TRUE)  # Correct usage of style and zero.policy
+
+filter(error_by_reg_and_fold, str_detect(Regression, "LOGO"))  %>% 
+    st_drop_geometry() %>%
+    group_by(Regression) %>%
+    summarize(Morans_I = moran.mc(abs(Mean_Error), neighborhood.weights, 
+                                 nsim = 999, zero.policy = TRUE, 
+                                 na.action=na.omit)[[1]],
+              p_value = moran.mc(abs(Mean_Error), neighborhood.weights, 
+                                 nsim = 999, zero.policy = TRUE, 
+                                 na.action=na.omit)[[3]]) %>% 
+  kable(caption = "Table 2: Moran's I on Errors by Regression") %>%
+    kable_styling("striped", full_width = F) %>%
+    row_spec(1, color = "black", background = "#FDE725FF") %>%
+    row_spec(1, color = "black", background = "#FDE725FF") 
+
+
+```
+This displays the residuals of different regression models used to predict new construction permits, segmented by model type. From the plot, it's evident that the distribution of residuals varies across the models, with some showing a tighter cluster around the zero line (indicating better prediction accuracy) and others displaying more spread, suggesting less precision. 
+
+```{r residuals, results='hide', warning = FALSE, message = FALSE}
+
+reg.summary <- reg.summary %>%
+  mutate(Residuals = countPermits - Prediction)
+
+# residual plot
+
+ggplot(reg.summary, aes(x = Prediction, y = Residuals)) +
+  geom_point(alpha = 0.4) +  # Use alpha to adjust point transparency
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +  # Add a horizontal line at y = 0
+  labs(title = "Residual Plot", x = "Predicted Values", y = "Residuals") +
+  theme_minimal()
+
+
+ggplot(reg.summary, aes(x = Prediction, y = Residuals, color = Regression)) +
+  geom_point(alpha = 0.4) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  facet_wrap(~ Regression) +  # Separate plot for each regression type
+  labs(title = "Residual Plot by Regression Type", x = "Predicted Values", y = "Residuals") +
+  scale_color_viridis_d() +  # Corrected to use discrete color scale
+  theme_minimal()
+
+```
+
+### Kernel Density
+
+The series of plots provided illustrate the spatial distribution of construction permits in Philadelphia using kernel density estimates with different search radii and a comparison of these estimates with spatial risk predictions. The first set of images shows kernel density maps for construction permits using three different search radii (1000 ft., 1500 ft., and 2000 ft.). As the search radius increases, the density map becomes smoother and broader, indicating a generalization in the concentration of construction activity across the city. This helps identify which areas are experiencing high volumes of construction relative to others, potentially pointing to hotspots of development or gentrification.
+
+```{r kd, results='hide', warning = FALSE, message = FALSE}
+# demo of kernel width
+permits_ppp <- as.ppp(st_coordinates(cnstPermits), W = st_bbox(final_net))
+permits_KD.1000 <- density.ppp(permits_ppp, 1000)
+permits_KD.1500 <- density.ppp(permits_ppp, 1500)
+permits_KD.2000 <-density.ppp(permits_ppp, 2000)
+permits_KD.df <- rbind(
+  mutate(data.frame(rasterToPoints(mask(raster(permits_KD.1000), as(phillyNeighborhoods, 'Spatial')))), Legend = "1000 Ft."),
+  mutate(data.frame(rasterToPoints(mask(raster(permits_KD.1500), as(phillyNeighborhoods, 'Spatial')))), Legend = "1500 Ft."),
+  mutate(data.frame(rasterToPoints(mask(raster(permits_KD.2000), as(phillyNeighborhoods, 'Spatial')))), Legend = "2000 Ft.")) 
+
+permits_KD.df$Legend <- factor(permits_KD.df$Legend, levels = c("1000 Ft.", "1500 Ft.", "2000 Ft."))
+
+ggplot(data=permits_KD.df, aes(x=x, y=y)) +
+  geom_raster(aes(fill=layer)) + 
+  facet_wrap(~Legend) +
+  coord_sf(crs=st_crs(final_net)) + 
+  scale_fill_viridis(name="Density") +
+  labs(title = "Kernel density with 3 different search radii") +
+  theme_void()
+```
+ 
+```{r kd2, results='hide', warning = FALSE, message = FALSE}
+
+#works but i dont think is needed unless there's one specific tihng we wanna look at 
+
+as.data.frame(permits_KD.1000) %>%
+  st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
+  aggregate(., final_net, mean) %>%
+   ggplot() +
+     geom_sf(aes(fill=value)) +
+     geom_sf(data = sample_n(cnstPermits, 1500), size = .5) +
+     scale_fill_viridis(name = "Density") +
+     labs(title = "Kernel density of Construction Permits") +
+     theme_void()
+```
+### Comparing models
+
+The plots below delve deeper by overlaying actual permit locations on the density estimates and comparing these against spatial risk predictions. These risk predictions categorize areas based on the predicted level of construction activity (from "Minimal" to "Very High" risk), allowing for a nuanced understanding of development intensity. These visualizations are crucial as they highlight areas where infrastructure and regulations might need to be reassessed due to rapid development. Specifically, areas classified as "Very High Risk" may require more attention to manage the impacts of gentrification, such as displacement and changes in the socio-economic fabric. 
+
+``` {r kd_spatial, results='hide', warning = FALSE, message = FALSE}
+
+# Prediction by Kernel Density Model
+
+permits_KD_sf_2022 <- as.data.frame(permits_KD.1500) %>%
+  st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
+  aggregate(., final_net, mean) %>%
+  mutate(label = "Kernel Density Estimates",
+         Risk_Level = ntile(value, 5),  # Change granularity of risk levels
+         Risk_Level = case_when(
+           Risk_Level == 5 ~ "Very High Risk",
+           Risk_Level == 4 ~ "High Risk",
+           Risk_Level == 3 ~ "Moderate Risk",
+           Risk_Level == 2 ~ "Low Risk",
+           TRUE ~ "Minimal Risk")) %>%
+  cbind(
+    aggregate(
+      dplyr::select(cnstPermits_2022) %>% mutate(permitCount = 1), ., sum) %>%
+      mutate(permitCount = replace_na(permitCount, 0))) %>%
+  dplyr::select(label, Risk_Level, permitCount)
+
+# Prediction by Risk Prediction Model
+
+permits_KD_risk_sf_2022 <-
+  reg.ss.spatialCV %>%
+  mutate(label = "Spatial Risk Predictions",
+         Risk_Level = ntile(Prediction, 5),
+         Risk_Level = case_when(
+           Risk_Level == 5 ~ "Very High Risk",
+           Risk_Level == 4 ~ "High Risk",
+           Risk_Level == 3 ~ "Moderate Risk",
+           Risk_Level == 2 ~ "Low Risk",
+           TRUE ~ "Minimal Risk")) %>%
+   cbind(
+    aggregate(
+      dplyr::select(cnstPermits_2022) %>% mutate(permitCount = 1), ., sum) %>%
+      mutate(permitCount = replace_na(permitCount, 0))) %>%
+  dplyr::select(label, Risk_Level, permitCount)
+
+unique(permits_KD_sf_2022$Risk_Level)  # Check for the 'permits_KD_sf' dataset
+unique(permits_KD_risk_sf_2022$Risk_Level)  # Check for the 'permits_KD_risk_sf' dataset
+
+summary(permits_KD_sf_2022$Risk_Level)
+summary(permits_KD_risk_sf_2022$Risk_Level)
+
+# Ensure 'option' and 'direction' are set to handle fewer categories
+scale_fill_viridis_d(option = "plasma", direction = 1, begin = 0, end = 1, name = "Risk Level")
+
+# Plotting comparison between both models
+
+rbind(permits_KD_sf_2022, permits_KD_risk_sf_2022) %>%
+  na.omit() %>%
+  gather(Variable, Value, -label, -Risk_Level, -geometry) %>%
+  ggplot() +
+  geom_sf(aes(fill = Risk_Level), colour = NA) +
+  geom_sf(data = sample_n(cnstPermits_2022, 1130), size = .5, colour = "black") +
+  facet_wrap(~label, ) +
+  scale_fill_viridis_d(option = "plasma",
+                       name = 'Risk Level') + 
+  labs(title="Comparison of Kernel Density and Risk Predictions",
+       subtitle="Bottom Layer is 2022 Predicted Permit Counts.\nDots are observed 2022 Permit Counts.\n",
+       caption = 'Figure 19') +
+  mapTheme() +
+  plotTheme()
+
+```
+
+The chart below reveals significant differences in the distribution of predicted permit counts between the two models. Spatial Risk Predictions consistently estimate higher rates of permits across all risk categories when compared to Kernel Density Estimates, with particularly stark contrasts in the "Very High Risk" and "Low Risk" categories. This suggests that the Spatial Risk Prediction model may be more sensitive to factors that predict higher construction activity, potentially providing a more dynamic or nuanced insight into the spatial distribution of construction risk compared to the more generalized Kernel Density approach.
+
+``` {r comparison bar plots, results='hide', warning = FALSE, message = FALSE}
+
+# Comparison of predictions - Bar Plots
+
+rbind(permits_KD_sf_2022, permits_KD_risk_sf_2022) %>%
+  st_set_geometry(NULL) %>% 
+  na.omit() %>%
+  gather(Variable, Value, -label, -Risk_Level) %>%
+  group_by(label, Risk_Level) %>%
+  summarize(permitCount = sum(Value)) %>%
+  ungroup() %>%
+  group_by(label) %>%
+  mutate(Rate_of_permit_count = permitCount / sum(permitCount)) %>%
+  ggplot(aes(Risk_Level,Rate_of_permit_count)) +
+  geom_bar(aes(fill=label), position="dodge", stat="identity") +
+  scale_fill_viridis_d(option = "plasma",
+                       name = 'Model') +
+  labs(title = "Risk Prediction vs. Kernel Density",
+       subtitle = 'Philadelphia, PA',
+       caption = 'Figure 20',
+       x = 'Risk Level',
+       y = 'Rate of Permit Counts') +
+  plotTheme()
+
+
+```
+
+### Risk Mapping
+
+Neighborhoods that may be at a high risk of gentrification by the proxy of new construction permits are mostly located near center city. Most of West Philadelphia, a large portion of North Philadelphia, and some parts of the Northwest are at risk of gentrification. The highest risk neighborhoods are Point Breeze, Fishtown, Rittenhouse, and Northern Liberties. 
+
+In addition to these areas, large swathes of West Philadelphia and significant portions of North Philadelphia, as well as some parts of the Northwest, are depicted as moderate to high risk. This extensive distribution suggests a broad impact of development that may influence housing markets, demographic shifts, and local economies across a considerable part of the city. 
+
+``` {r risk map, results='hide', warning = FALSE, message = FALSE}
+# Assigning Risk Categories for Predictions
+
+permit_risk_sf_2022 <-
+  filter(reg.summary, Regression == "Spatial LOGO-CV: Spatial Process") %>%
+  mutate(label = "Spatial Risk Predictions",
+         Risk_Level = ntile(Prediction, 5),
+         Risk_Level = case_when(
+           Risk_Level == 5 ~ "Very High Risk",
+           Risk_Level == 4 ~ "High Risk",
+           Risk_Level == 3 ~ "Moderate Risk",
+           Risk_Level == 2 ~ "Low Risk",
+           TRUE ~ "Minimal Risk"))
+
+
+permit_risk_sf_2022 %>%
+  gather(Variable, Value, -label, -Risk_Level, -geometry) %>%
+  ggplot() +
+    geom_sf(aes(fill = Risk_Level), colour = NA) +
+    geom_sf(data=phillyNeighborhoods, fill = "transparent") +
+    scale_fill_viridis(discrete = TRUE) +
+    labs(title="Risk Predictions",
+         subtitle="New Construction Permit Predictions",
+         caption="Figure 20") +
+    mapTheme()+
+    plotTheme()
+
+
+```
+
+``` {r highest risk neighborhood, results='hide', warning = FALSE, message = FALSE}
+
+# Neighborhoods at highest risk of permitting construction
+highest_risk_nhoods <-
+  permit_risk_sf_2022 %>%
+  dplyr::select(cvID, Risk_Level, countPermits) %>%
+  dplyr::filter(., Risk_Level == "Very High Risk") %>%  # Adjusted to match the new risk category
+  st_drop_geometry() %>%
+  group_by(cvID) %>%
+  summarise(Predicted_Permits = sum(countPermits)) %>%
+  dplyr::filter(., Predicted_Permits > 52) %>%
+  arrange(., desc(Predicted_Permits)) %>%
+  rename(Neighborhood = cvID)
+
+# Plotting the highest risk neighborhoods
+ggplot(highest_risk_nhoods) +
+  geom_bar(aes(x = reorder(Neighborhood, -Predicted_Permits), y = Predicted_Permits), fill = "#FE9900", stat = "identity", width = 0.5) +
+  labs(x = "Neighborhood", y = "Predicted Permits", 
+       title = "Neighborhoods with Very High Permitting Risk", subtitle = 'Philadelphia, PA', caption = "Figure 21") +
+  theme(axis.text.x = element_text(size = 6, angle = 60, vjust = 0.7, hjust = 0.7),
+        axis.text.y = element_text(size = 6),
+        axis.title = element_text(size = 8), 
+        plot.title = element_text(size = 9, face = "bold", color = "darkred"),
+        plot.subtitle = element_text(size = 7, face = "italic", color = "black"),
+        plot.margin = margin(0, 50, 8, 50, "pt"))
+
+
+```
+The implications of such widespread development are complex, potentially leading to increased property values and living costs, which could displace long-standing residents and alter the cultural fabric of these neighborhoods. The maps help identify where proactive measures might be necessary to mitigate the adverse effects of gentrification, such as promoting affordable housing initiatives and supporting local businesses to preserve neighborhood character and inclusivity.
+
+## Comparing to a different time
+
+Let's see how our model performed relative to KD on another year's data. Comparing the spatial risk predictions and kernel density estimates from 2013 to 2022 in Philadelphia, there is a noticeable shift in risk distribution and the concentration of predicted permit counts. In 2013, the very high-risk categories were predominantly emphasized in the kernel density model, indicating a higher concentration of construction activity in a few areas. By 2022, the spatial risk predictions model shows a more distributed risk across the city, with a significant portion of the city classified under very high risk, suggesting an expansion in areas targeted for new construction. This shift could imply a broadening of development focus, potentially spreading gentrification pressures more widely across Philadelphia. This comparison highlights the dynamic nature of urban development and the increasing spread of high-risk areas over the years, necessitating updated and responsive planning and policy measures.
+
+```{r 2013 data, results='hide', warning = FALSE, message = FALSE}
+
+permits_KD_sf_2013 <- as.data.frame(permits_KD.1500) %>%
+  st_as_sf(coords = c("x", "y"), crs = st_crs(final_net)) %>%
+  aggregate(., final_net, mean) %>%
+  mutate(label = "Kernel Density Estimates",
+         Risk_Level = ntile(value, 5),  # Change granularity of risk levels
+         Risk_Level = case_when(
+           Risk_Level == 5 ~ "Very High Risk",
+           Risk_Level == 4 ~ "High Risk",
+           Risk_Level == 3 ~ "Moderate Risk",
+           Risk_Level == 2 ~ "Low Risk",
+           TRUE ~ "Minimal Risk")) %>%
+  cbind(
+    aggregate(
+      dplyr::select(cnstPermits_2013) %>% mutate(permitCount = 1), ., sum) %>%
+      mutate(permitCount = replace_na(permitCount, 0))) %>%
+  dplyr::select(label, Risk_Level, permitCount)
+
+# Prediction by Risk Prediction Model
+
+permits_KD_risk_sf_2013 <-
+  reg.ss.spatialCV %>%
+  mutate(label = "Spatial Risk Predictions",
+         Risk_Level = ntile(Prediction, 5),
+         Risk_Level = case_when(
+           Risk_Level == 5 ~ "Very High Risk",
+           Risk_Level == 4 ~ "High Risk",
+           Risk_Level == 3 ~ "Moderate Risk",
+           Risk_Level == 2 ~ "Low Risk",
+           TRUE ~ "Minimal Risk")) %>%
+   cbind(
+    aggregate(
+      dplyr::select(cnstPermits_2013) %>% mutate(permitCount = 1), ., sum) %>%
+      mutate(permitCount = replace_na(permitCount, 0))) %>%
+  dplyr::select(label, Risk_Level, permitCount)
+
+unique(permits_KD_sf_2013$Risk_Level)  # Check for the 'permits_KD_sf' dataset
+unique(permits_KD_risk_sf_2013$Risk_Level)  # Check for the 'permits_KD_risk_sf' dataset
+
+summary(permits_KD_sf_2013$Risk_Level)
+summary(permits_KD_risk_sf_2013$Risk_Level)
+
+# Ensure 'option' and 'direction' are set to handle fewer categories
+scale_fill_viridis_d(option = "plasma", direction = 1, begin = 0, end = 1, name = "Risk Level")
+
+# Plotting comparison between both models
+
+rbind(permits_KD_sf_2013, permits_KD_risk_sf_2013) %>%
+  na.omit() %>%
+  gather(Variable, Value, -label, -Risk_Level, -geometry) %>%
+  ggplot() +
+  geom_sf(aes(fill = Risk_Level), colour = NA) +
+  geom_sf(data = sample_n(cnstPermits_2013, 1130), size = .5, colour = "black") +
+  facet_wrap(~label, ) +
+  scale_fill_viridis_d(option = "plasma",
+                       name = 'Risk Level') + 
+  labs(title="Comparison of Kernel Density and Risk Predictions",
+       subtitle="Bottom Layer is 2013 Predicted Permit Counts.\nDots are observed 2013 Permit Counts.\n",
+       caption = 'Figure __') +
+  mapTheme() +
+  plotTheme()
+
+```
+
+
+
+ 
+```{r comp plot, results='hide', warning = FALSE, message = FALSE}
+rbind(permits_KD_risk_sf_2013, permits_KD_risk_sf_2022) %>%
+  na.omit() %>%
+  gather(Variable, Value, -label, -Risk_Level, -geometry) %>%
+  ggplot() +
+    geom_sf(aes(fill = Risk_Level), colour = NA) +
+    geom_sf(data = sample_n(cnstPermits, 3000), size = .5, colour = "black") +
+    facet_wrap(~label, ) +
+    scale_fill_viridis(discrete = TRUE) +
+    labs(title="Comparison of Kernel Density and Risk Predictions",
+         subtitle="2013 Construction Permits Density; 2022 Construction Permits Density") +
+    mapTheme()
+
+```
+
+```{r comp bar, results='hide', warning = FALSE, message = FALSE}
+rbind(permits_KD_sf_2013, permits_KD_risk_sf_2013) %>%
+  st_drop_geometry() %>%
+  na.omit() %>%
+  gather(Variable, Value, -label, -Risk_Level) %>%
+  group_by(label, Risk_Level) %>%
+  summarize(countPermits = sum(Value)) %>%
+  ungroup() %>%
+  group_by(label) %>%
+  mutate(Pcnt_cnst_permits = countPermits / sum(countPermits)) %>%
+    ggplot(aes(Risk_Level,Pcnt_cnst_permits)) +
+      geom_bar(aes(fill=label), position="dodge", stat="identity") +
+      scale_fill_viridis(discrete = TRUE, name = "Model") +
+      labs(title = "Risk prediction vs. Kernel density, 2013",
+           y = "% of Test Set (per model)",
+           x = "Risk Level") +
+  theme_bw() +
+      theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
+```
+
+## Conclusion
+
+The model can be used to plan for future policy that can protect legacy residents and small businesses of neighborhoods that are at risk by identifying the neighborhoods where gentrification can occur. This model was built with respect to new construction, permitting, and demolition data, among other predictors. From this analysis, it was identified that many neighborhoods in the region surrounding Center City Philadelphia are at risk for gentrification, especially Point Breeze, Rittenhouse, and river-adjacent neighborhoods like East Kensington, Fishtown, and Northern Liberties.
+
+Our work can be used to inform planning decisions that will be carried out by the Office of Innovation and Technology and the Smart Cities office. While it can be a useful tool, it should be used in tandem with other tools to predict and plan for gentrification in different neighborhoods. The staff at Marie Antoinette Predictions chose variables that were possibly predictors of gentrification, but we did not account for everything that could affect and become a predictor for gentrification. The existence and disappearance of civic assets like schools, libraries, green spaces, and public spaces could be markers of possible gentrification that are not tied to the data used in the model. 
+
+Additionally, there are different situations and nuances of displacement that cannot be captured in the data. Predicting the order and timeline displacement is a further challenge that OIT and the Smart Cities office could tackle. Direct displacement, or the phenomenon of when residents can no longer afford to live in their homes because of rising costs, would occur first with the proposals and new constructions and other types of permits^8^. Indirect displacement occurs when higher income residents move into an area when lower income residents move out. This can be captured through census data, in the median income or income bracket breakdown, to see the financial landscape of the neighborhood change. Finally, there is cultural displacement that occurs when civic assets change. Shops change to focus their customer base on new people, and it broadly feels like the neighborhood has transformed^10^. A model that can track a neighborhood using data throughout these phases is one that should be used by the city to identify gentrification. 
+
+## References
+
+1. https://whyy.org/articles/philadelphia-americas-poorest-big-city-poverty/
+2. https://www.pewtrusts.org/-/media/assets/2020/09/phillyhousingreport.pdf
+3. Ibid.
+4. https://whyy.org/articles/philadelphia-affordable-housing-bills-council-gauthier/
+5. https://sites.utexas.edu/gentrificationproject/understanding-gentrification-and-displacement/
+6. https://hai.stanford.edu/news/spotting-visual-signs-gentrification-scale
+7. https://opendataphilly.org/
